@@ -154,10 +154,29 @@ namespace min_pd {
     }
 
     inline __m256i shift_right(__m256i a) {
+#if defined(__AVX512VBMI__) && defined(__AVX512VL__)
         constexpr __m256i idx = {0x605040302010000, 0xe0d0c0b0a090807, 0x161514131211100f, 0x1e1d1c1b1a191817};
-        constexpr uint64_t mask = 18446744073709551614ULL;
-        __m256i res = _mm256_permutexvar_epi8(idx, a);
+        return _mm256_permutexvar_epi8(idx, a);
+#elif defined(__AVX512BW__) && defined(__AVX512VL__)
+        const __m128i low = _mm256_castsi256_si128(a);
+        const __m128i high = _mm256_extracti128_si256(a, 1);
+
+        const __m128i shifted_low = _mm_slli_si128(low, 1);
+        __m128i shifted_high = _mm_slli_si128(high, 1);
+
+        const __m128i carry = _mm_srli_si128(low, 15);
+        shifted_high = _mm_or_si128(shifted_high, carry);
+
+        __m256i res = _mm256_castsi128_si256(shifted_low);
+        res = _mm256_inserti128_si256(res, shifted_high, 1);
         return res;
+#else
+        alignas(32) uint8_t bytes[32];
+        _mm256_store_si256((__m256i *) bytes, a);
+        memmove(bytes + 1, bytes, 31);
+        bytes[0] = 0;
+        return _mm256_load_si256((const __m256i *) bytes);
+#endif
     }
 
 
