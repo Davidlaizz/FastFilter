@@ -268,22 +268,87 @@ namespace tc_sym {
      * @param a 
      * @return __m512i 
      */
+    inline __m256i shift_right_256(__m256i a) {
+        const __m128i low = _mm256_castsi256_si128(a);
+        const __m128i high = _mm256_extracti128_si256(a, 1);
+
+        const __m128i shifted_low = _mm_slli_si128(low, 1);
+        __m128i shifted_high = _mm_slli_si128(high, 1);
+
+        const __m128i carry = _mm_srli_si128(low, 15);
+        shifted_high = _mm_or_si128(shifted_high, carry);
+
+        __m256i res = _mm256_castsi128_si256(shifted_low);
+        return _mm256_inserti128_si256(res, shifted_high, 1);
+    }
+
+    inline __m256i shift_left_256(__m256i a) {
+        const __m128i low = _mm256_castsi256_si128(a);
+        const __m128i high = _mm256_extracti128_si256(a, 1);
+
+        __m128i shifted_low = _mm_srli_si128(low, 1);
+        const __m128i shifted_high = _mm_srli_si128(high, 1);
+
+        const __m128i carry = _mm_slli_si128(high, 15);
+        shifted_low = _mm_or_si128(shifted_low, carry);
+
+        __m256i res = _mm256_castsi128_si256(shifted_low);
+        return _mm256_inserti128_si256(res, shifted_high, 1);
+    }
+
     inline __m512i shift_right(__m512i a) {
+#if defined(__AVX512VBMI__)
         // The indices encoded here actually encode shift left.
         // idx is an "uint8_t arr[64]" where "arr[i] = i-1" (arr[0] = 0).
         constexpr __m512i idx = {433757350076153919, 1012478732780767239, 1591200115485380623, 2169921498189994007,
                                  2748642880894607391, 3327364263599220775, 3906085646303834159, 4484807029008447543};
         constexpr uint64_t mask = 18446744073709551614ULL;
-        __m512i res = _mm512_maskz_permutexvar_epi8(mask, idx, a);
-        return res;
+        return _mm512_maskz_permutexvar_epi8(mask, idx, a);
+#elif defined(__AVX512BW__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX2__)
+        const __m256i lo = _mm512_castsi512_si256(a);
+        const __m256i hi = _mm512_extracti64x4_epi64(a, 1);
+
+        const __m256i shifted_lo = shift_right_256(lo);
+        __m256i shifted_hi = shift_right_256(hi);
+
+        const int carry = _mm256_extract_epi8(lo, 31);
+        shifted_hi = _mm256_insert_epi8(shifted_hi, carry, 0);
+
+        __m512i res = _mm512_castsi256_si512(shifted_lo);
+        return _mm512_inserti64x4(res, shifted_hi, 1);
+#else
+        alignas(64) uint8_t bytes[64];
+        _mm512_store_si512((__m512i *) bytes, a);
+        memmove(bytes + 1, bytes, 63);
+        bytes[0] = 0;
+        return _mm512_load_si512((const __m512i *) bytes);
+#endif
     }
 
     inline __m512i shift_left(__m512i a) {
+#if defined(__AVX512VBMI__)
         constexpr __m512i idx = {578437695752307201, 1157159078456920585, 1735880461161533969, 2314601843866147353, 2893323226570760737, 3472044609275374121, 4050765991979987505, 17801356257212985};
-
         constexpr uint64_t mask = 9223372036854775807ULL;
-        __m512i res = _mm512_maskz_permutexvar_epi8(mask, idx, a);
-        return res;
+        return _mm512_maskz_permutexvar_epi8(mask, idx, a);
+#elif defined(__AVX512BW__) && defined(__AVX512VL__) && defined(__AVX512DQ__) && defined(__AVX2__)
+        __m256i lo = _mm512_castsi512_si256(a);
+        const __m256i hi = _mm512_extracti64x4_epi64(a, 1);
+
+        __m256i shifted_lo = shift_left_256(lo);
+        const __m256i shifted_hi = shift_left_256(hi);
+
+        const int carry = _mm256_extract_epi8(hi, 0);
+        shifted_lo = _mm256_insert_epi8(shifted_lo, carry, 31);
+
+        __m512i res = _mm512_castsi256_si512(shifted_lo);
+        return _mm512_inserti64x4(res, shifted_hi, 1);
+#else
+        alignas(64) uint8_t bytes[64];
+        _mm512_store_si512((__m512i *) bytes, a);
+        memmove(bytes, bytes + 1, 63);
+        bytes[63] = 0;
+        return _mm512_load_si512((const __m512i *) bytes);
+#endif
     }
 
     inline bool pd_find_naive(int64_t quot, uint8_t rem, const __m512i *pd) {
