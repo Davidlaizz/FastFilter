@@ -82,6 +82,26 @@ Any specific target (for example `measure_perf`) can be built and executed with 
 t="measure_perf"; time cmake --build ./ --target $t -j 20 && time taskset -c 2 ./$t 
 ```
 
+### `newFilter` 4-way dedup benchmark (n = 100000)
+Dedicated source files are under `newFilter/`:
+- `newFilter/simhash_4x16_filter.hpp`
+- `newFilter/simdup_bench.hpp`
+- `newFilter/main-perf.cpp`, `newFilter/main-built.cpp`, `newFilter/main-fpp.cpp`
+
+Dedicated targets:
+- `measure_newfilter_perf` (20 load rounds, per round: `0.05n` inserts + `0.05n` uniform queries + `0.05n` positive queries)
+- `measure_newfilter_built`
+- `measure_newfilter_fpp`
+
+Example:
+```
+t="measure_newfilter_perf measure_newfilter_built measure_newfilter_fpp"
+time cmake --build ./ --target $t -j 20
+taskset -c 2 ./measure_newfilter_perf
+taskset -c 2 ./measure_newfilter_built
+taskset -c 2 ./measure_newfilter_fpp
+```
+
 <!-- If you are planning on using the perf event wrapper, then use `sudo` after the `&&`.
 For running on different core than `2`, line 78 in `Tests/PerfEvent.hpp` should be changed. -->
 

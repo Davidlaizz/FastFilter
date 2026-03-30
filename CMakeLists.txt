@@ -71,6 +71,11 @@ set(ALL_FILES
         all_main.cpp
         )
 
+set(NEWFILTER_FILES
+        newFilter/simhash_4x16_filter.hpp
+        newFilter/simdup_bench.hpp
+)
+
 
 ################################################################################
 ################################################################################
@@ -111,6 +116,18 @@ add_executable(example0 ${ALL_FILES_NM} example.cpp)
 add_executable(example ${ALL_FILES_NM} example.cpp)
 target_compile_options(example0 PRIVATE -O0 -g3 -W)
 target_compile_options(example PRIVATE -Ofast -DNDEBUG)
+
+################################################################################
+
+# Measure newFilter only (n=100000)
+add_executable(measure_newfilter_perf ${NEWFILTER_FILES} newFilter/main-perf.cpp)
+target_compile_options(measure_newfilter_perf PRIVATE -Ofast -DNDEBUG)
+
+add_executable(measure_newfilter_built ${NEWFILTER_FILES} newFilter/main-built.cpp)
+target_compile_options(measure_newfilter_built PRIVATE -Ofast -DNDEBUG)
+
+add_executable(measure_newfilter_fpp ${NEWFILTER_FILES} newFilter/main-fpp.cpp)
+target_compile_options(measure_newfilter_fpp PRIVATE -Ofast -DNDEBUG)
 
 
 ################################################################################
