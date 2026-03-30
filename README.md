@@ -97,7 +97,9 @@ Dedicated targets:
 Outputs:
 - Throughput raw data: `scripts/Inputs/SimHash-4x16-OR`
 - Query hit-rate raw data: `scripts/Inputs/SimHash-4x16-OR-hitrate`
+- Fill/occupancy raw data: `scripts/Inputs/SimHash-4x16-OR-fill`
 - Build/FPP summaries: `scripts/build-newfilter.csv`, `scripts/fpp_table_newfilter.csv`
+- Plotted PDFs: `scripts/newfilter-throughput.pdf`, `scripts/newfilter-hitrate.pdf`, `scripts/newfilter-realdata-ratio.pdf`, `scripts/newfilter-items.pdf`, `scripts/newfilter-occupancy.pdf`
 
 Example:
 ```

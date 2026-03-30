@@ -22,7 +22,10 @@ class SimHash4x16OrFilter {
 
     std::array<std::vector<Bucket>, kWays> buckets{};
     std::array<std::vector<uint16_t>, kWays> occupied_masks{};
-    size_t logical_items = 0;
+    std::array<size_t, kWays> occupied_slots_per_way{};
+    size_t add_attempts = 0;
+    size_t logical_items_any = 0;
+    size_t logical_items_full = 0;
 
     __attribute__((always_inline)) inline static uint16_t segment_of(uint64_t x, size_t way) {
         return static_cast<uint16_t>(x >> (way * kSegmentBits));
@@ -94,13 +97,23 @@ public:
     }
 
     inline void Add(const uint64_t &item) {
+        size_t inserted_ways = 0;
         for (size_t way = 0; way < kWays; ++way) {
             const uint16_t segment = segment_of(item, way);
             const uint16_t bin = segment_bin(segment);
             const uint8_t fp = segment_fp(segment);
-            bucket_insert(&buckets[way][bin], &occupied_masks[way][bin], fp);
+            if (bucket_insert(&buckets[way][bin], &occupied_masks[way][bin], fp)) {
+                occupied_slots_per_way[way]++;
+                inserted_ways++;
+            }
         }
-        logical_items++;
+        add_attempts++;
+        if (inserted_ways > 0) {
+            logical_items_any++;
+        }
+        if (inserted_ways == kWays) {
+            logical_items_full++;
+        }
     }
 
     auto get_name() const -> std::string {
@@ -113,7 +126,39 @@ public:
     }
 
     auto get_cap() const -> size_t {
-        return logical_items;
+        return logical_items_any;
+    }
+
+    auto get_add_attempts() const -> size_t {
+        return add_attempts;
+    }
+
+    auto get_logical_items_any() const -> size_t {
+        return logical_items_any;
+    }
+
+    auto get_logical_items_full() const -> size_t {
+        return logical_items_full;
+    }
+
+    auto get_way_occupied_slots() const -> const std::array<size_t, kWays> & {
+        return occupied_slots_per_way;
+    }
+
+    auto get_total_occupied_slots() const -> size_t {
+        size_t total = 0;
+        for (auto count : occupied_slots_per_way) {
+            total += count;
+        }
+        return total;
+    }
+
+    auto get_total_slot_capacity() const -> size_t {
+        return kWays * kBucketsPerWay * kSlotsPerBucket;
+    }
+
+    auto get_slot_occupancy_ratio() const -> double {
+        return static_cast<double>(get_total_occupied_slots()) / static_cast<double>(get_total_slot_capacity());
     }
 };
 
