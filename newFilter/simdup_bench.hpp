@@ -28,6 +28,7 @@ constexpr size_t kBenchPrecision = 20;
 constexpr size_t kRounds = 9;
 constexpr const char *kPerfPath = "../scripts/Inputs/SimHash-4x16-OR";
 constexpr const char *kHitRatePath = "../scripts/Inputs/SimHash-4x16-OR-hitrate";
+constexpr const char *kFillPath = "../scripts/Inputs/SimHash-4x16-OR-fill";
 constexpr const char *kBuildPath = "../scripts/build-newfilter.csv";
 constexpr const char *kFppPath = "../scripts/fpp_table_newfilter.csv";
 constexpr const char *kFilterName = "SimHash-4x16-OR";
@@ -46,6 +47,15 @@ struct HitRateRow {
     size_t positive_hits = 0;
     size_t negative_queries = 0;
     size_t positive_queries = 0;
+};
+
+struct FillRow {
+    size_t add_attempts = 0;
+    size_t logical_items_any = 0;
+    size_t logical_items_full = 0;
+    size_t total_occupied_slots = 0;
+    size_t total_slot_capacity = 0;
+    double slot_occupancy_ratio = 0;
 };
 
 inline volatile size_t g_lookup_sink = 0;
@@ -179,6 +189,34 @@ inline void append_hitrate_block(size_t filter_max_capacity,
     file << "END_OF_FILE!" << std::endl;
 }
 
+inline void append_fill_block(size_t filter_max_capacity,
+                              size_t bench_precision,
+                              const std::vector<FillRow> &rows,
+                              const std::string &path) {
+    std::fstream file(path, std::fstream::in | std::fstream::out | std::fstream::app);
+    file << std::endl;
+    file << "# This is a comment." << std::endl;
+    file << "NAME\t" << kFilterName << std::endl;
+    file << "FILTER_MAX_CAPACITY\t" << filter_max_capacity << std::endl;
+    file << "BENCH_PRECISION\t" << bench_precision << std::endl;
+    file << std::endl;
+    file << "# add_attempts, logical_items_any, logical_items_full, total_occupied_slots, total_slot_capacity, slot_occupancy_ratio." << std::endl;
+    file << std::endl;
+    file << "FILL_START" << std::endl;
+    file << std::fixed << std::setprecision(8);
+    for (const auto &row : rows) {
+        file << row.add_attempts << ", "
+             << row.logical_items_any << ", "
+             << row.logical_items_full << ", "
+             << row.total_occupied_slots << ", "
+             << row.total_slot_capacity << ", "
+             << row.slot_occupancy_ratio << std::endl;
+    }
+    file << std::endl;
+    file << "FILL_END" << std::endl;
+    file << "END_OF_FILE!" << std::endl;
+}
+
 inline void run_perf_single_round(size_t n = kN, size_t bench_precision = kBenchPrecision) {
     ensure_output_dirs();
     const size_t add_step = n / bench_precision;
@@ -196,6 +234,7 @@ inline void run_perf_single_round(size_t n = kN, size_t bench_precision = kBench
 
     std::vector<PerfRow> rows(bench_precision);
     std::vector<HitRateRow> hit_rows(bench_precision);
+    std::vector<FillRow> fill_rows(bench_precision);
 
     for (size_t round = 0; round < bench_precision; ++round) {
         const size_t add_start = round * add_step;
@@ -223,10 +262,18 @@ inline void run_perf_single_round(size_t n = kN, size_t bench_precision = kBench
         hit_rows[round].positive_queries = true_find_step;
         hit_rows[round].negative_hit_rate = static_cast<double>(neg_lookup.second) / static_cast<double>(find_step);
         hit_rows[round].positive_hit_rate = static_cast<double>(pos_lookup.second) / static_cast<double>(true_find_step);
+
+        fill_rows[round].add_attempts = filter.get_add_attempts();
+        fill_rows[round].logical_items_any = filter.get_logical_items_any();
+        fill_rows[round].logical_items_full = filter.get_logical_items_full();
+        fill_rows[round].total_occupied_slots = filter.get_total_occupied_slots();
+        fill_rows[round].total_slot_capacity = filter.get_total_slot_capacity();
+        fill_rows[round].slot_occupancy_ratio = filter.get_slot_occupancy_ratio();
     }
 
     append_perf_block(filter, init_time, n, n, rows, kPerfPath);
     append_hitrate_block(n, find_step, true_find_step, hit_rows, kHitRatePath);
+    append_fill_block(n, bench_precision, fill_rows, kFillPath);
 }
 
 inline auto run_build_single(size_t n = kN) -> u64 {
