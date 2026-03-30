@@ -56,4 +56,4 @@ def name_dict(filter_name: str) -> str:
 
 
 def get_time():
-    return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    return datetime.now().strftime('%Y-%m-%d %H-%M-%S')
