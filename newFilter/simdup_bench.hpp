@@ -15,6 +15,7 @@
 #include <random>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace simdup_bench {
@@ -22,10 +23,11 @@ namespace simdup_bench {
 using u64 = uint64_t;
 using ns = std::chrono::nanoseconds;
 
-constexpr size_t kN = 100000;
+constexpr size_t kN = 65000;
 constexpr size_t kBenchPrecision = 20;
 constexpr size_t kRounds = 9;
 constexpr const char *kPerfPath = "../scripts/Inputs/SimHash-4x16-OR";
+constexpr const char *kHitRatePath = "../scripts/Inputs/SimHash-4x16-OR-hitrate";
 constexpr const char *kBuildPath = "../scripts/build-newfilter.csv";
 constexpr const char *kFppPath = "../scripts/fpp_table_newfilter.csv";
 constexpr const char *kFilterName = "SimHash-4x16-OR";
@@ -36,6 +38,17 @@ struct PerfRow {
     u64 yes_lookup_ns = 0;
     u64 deletions_ns = 0;
 };
+
+struct HitRateRow {
+    double negative_hit_rate = 0;
+    double positive_hit_rate = 0;
+    size_t negative_hits = 0;
+    size_t positive_hits = 0;
+    size_t negative_queries = 0;
+    size_t positive_queries = 0;
+};
+
+inline volatile size_t g_lookup_sink = 0;
 
 inline auto rng() -> std::mt19937_64 & {
     thread_local std::mt19937_64 engine([] {
@@ -71,6 +84,7 @@ inline auto count_positive(const SimHash4x16OrFilter &filter, const std::vector<
     for (const auto item : vec) {
         counter += filter.Find(item);
     }
+    g_lookup_sink += counter;
     return counter;
 }
 
@@ -85,6 +99,28 @@ inline auto make_positive_sample(const std::vector<u64> &base, size_t inserted_p
     }
     std::shuffle(sample.begin(), sample.end(), rng());
     return sample;
+}
+
+inline auto timed_query_hits_on_range(const SimHash4x16OrFilter &filter, const std::vector<u64> &vec, size_t start, size_t end) -> std::pair<u64, size_t> {
+    size_t hits = 0;
+    const u64 elapsed = time_ns([&] {
+        for (size_t i = start; i < end; ++i) {
+            hits += filter.Find(vec[i]);
+        }
+    });
+    g_lookup_sink += hits;
+    return {elapsed, hits};
+}
+
+inline auto timed_query_hits(const SimHash4x16OrFilter &filter, const std::vector<u64> &vec) -> std::pair<u64, size_t> {
+    size_t hits = 0;
+    const u64 elapsed = time_ns([&] {
+        for (const auto item : vec) {
+            hits += filter.Find(item);
+        }
+    });
+    g_lookup_sink += hits;
+    return {elapsed, hits};
 }
 
 inline void append_perf_block(const SimHash4x16OrFilter &filter,
@@ -113,6 +149,36 @@ inline void append_perf_block(const SimHash4x16OrFilter &filter,
     file << "END_OF_FILE!" << std::endl;
 }
 
+inline void append_hitrate_block(size_t filter_max_capacity,
+                                 size_t negative_queries_per_round,
+                                 size_t positive_queries_per_round,
+                                 const std::vector<HitRateRow> &rows,
+                                 const std::string &path) {
+    std::fstream file(path, std::fstream::in | std::fstream::out | std::fstream::app);
+    file << std::endl;
+    file << "# This is a comment." << std::endl;
+    file << "NAME\t" << kFilterName << std::endl;
+    file << "FILTER_MAX_CAPACITY\t" << filter_max_capacity << std::endl;
+    file << "NEGATIVE_QUERIES_PER_ROUND\t" << negative_queries_per_round << std::endl;
+    file << "POSITIVE_QUERIES_PER_ROUND\t" << positive_queries_per_round << std::endl;
+    file << std::endl;
+    file << "# negative_hit_rate, positive_hit_rate, negative_hits, positive_hits, negative_queries, positive_queries." << std::endl;
+    file << std::endl;
+    file << "HITRATE_START" << std::endl;
+    file << std::fixed << std::setprecision(8);
+    for (const auto &row : rows) {
+        file << row.negative_hit_rate << ", "
+             << row.positive_hit_rate << ", "
+             << row.negative_hits << ", "
+             << row.positive_hits << ", "
+             << row.negative_queries << ", "
+             << row.positive_queries << std::endl;
+    }
+    file << std::endl;
+    file << "HITRATE_END" << std::endl;
+    file << "END_OF_FILE!" << std::endl;
+}
+
 inline void run_perf_single_round(size_t n = kN, size_t bench_precision = kBenchPrecision) {
     ensure_output_dirs();
     const size_t add_step = n / bench_precision;
@@ -129,6 +195,8 @@ inline void run_perf_single_round(size_t n = kN, size_t bench_precision = kBench
     const auto init_time = std::chrono::duration_cast<ns>(init_end - init_start).count();
 
     std::vector<PerfRow> rows(bench_precision);
+    std::vector<HitRateRow> hit_rows(bench_precision);
+
     for (size_t round = 0; round < bench_precision; ++round) {
         const size_t add_start = round * add_step;
         const size_t add_end = add_start + add_step;
@@ -141,22 +209,24 @@ inline void run_perf_single_round(size_t n = kN, size_t bench_precision = kBench
             }
         });
 
-        rows[round].uniform_lookup_ns = time_ns([&] {
-            for (size_t i = find_start; i < find_end; ++i) {
-                filter.Find(find_vec[i]);
-            }
-        });
+        const auto neg_lookup = timed_query_hits_on_range(filter, find_vec, find_start, find_end);
+        rows[round].uniform_lookup_ns = neg_lookup.first;
 
         const auto positive_sample = make_positive_sample(add_vec, add_end, true_find_step);
-        rows[round].yes_lookup_ns = time_ns([&] {
-            for (const auto item : positive_sample) {
-                filter.Find(item);
-            }
-        });
+        const auto pos_lookup = timed_query_hits(filter, positive_sample);
+        rows[round].yes_lookup_ns = pos_lookup.first;
         rows[round].deletions_ns = 0;
+
+        hit_rows[round].negative_hits = neg_lookup.second;
+        hit_rows[round].positive_hits = pos_lookup.second;
+        hit_rows[round].negative_queries = find_step;
+        hit_rows[round].positive_queries = true_find_step;
+        hit_rows[round].negative_hit_rate = static_cast<double>(neg_lookup.second) / static_cast<double>(find_step);
+        hit_rows[round].positive_hit_rate = static_cast<double>(pos_lookup.second) / static_cast<double>(true_find_step);
     }
 
     append_perf_block(filter, init_time, n, n, rows, kPerfPath);
+    append_hitrate_block(n, find_step, true_find_step, hit_rows, kHitRatePath);
 }
 
 inline auto run_build_single(size_t n = kN) -> u64 {

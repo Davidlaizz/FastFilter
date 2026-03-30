@@ -119,7 +119,7 @@ target_compile_options(example PRIVATE -Ofast -DNDEBUG)
 
 ################################################################################
 
-# Measure newFilter only (n=100000)
+# Measure newFilter only (n=65000)
 add_executable(measure_newfilter_perf ${NEWFILTER_FILES} newFilter/main-perf.cpp)
 target_compile_options(measure_newfilter_perf PRIVATE -Ofast -DNDEBUG)
 

@@ -82,16 +82,22 @@ Any specific target (for example `measure_perf`) can be built and executed with 
 t="measure_perf"; time cmake --build ./ --target $t -j 20 && time taskset -c 2 ./$t 
 ```
 
-### `newFilter` 4-way dedup benchmark (n = 100000)
+### `newFilter` 4-way dedup benchmark (n = 65000)
 Dedicated source files are under `newFilter/`:
 - `newFilter/simhash_4x16_filter.hpp`
 - `newFilter/simdup_bench.hpp`
 - `newFilter/main-perf.cpp`, `newFilter/main-built.cpp`, `newFilter/main-fpp.cpp`
+- `newFilter/plot_results.py`
 
 Dedicated targets:
-- `measure_newfilter_perf` (20 load rounds, per round: `0.05n` inserts + `0.05n` uniform queries + `0.05n` positive queries)
+- `measure_newfilter_perf` (20 load rounds, per round: `0.05n` inserts + `0.05n` negative queries + `0.05n` positive queries)
 - `measure_newfilter_built`
 - `measure_newfilter_fpp`
+
+Outputs:
+- Throughput raw data: `scripts/Inputs/SimHash-4x16-OR`
+- Query hit-rate raw data: `scripts/Inputs/SimHash-4x16-OR-hitrate`
+- Build/FPP summaries: `scripts/build-newfilter.csv`, `scripts/fpp_table_newfilter.csv`
 
 Example:
 ```
@@ -100,6 +106,7 @@ time cmake --build ./ --target $t -j 20
 taskset -c 2 ./measure_newfilter_perf
 taskset -c 2 ./measure_newfilter_built
 taskset -c 2 ./measure_newfilter_fpp
+python3 ../newFilter/plot_results.py --outdir ../scripts
 ```
 
 <!-- If you are planning on using the perf event wrapper, then use `sudo` after the `&&`.
