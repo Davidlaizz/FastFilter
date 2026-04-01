@@ -1,0 +1,3 @@
+n =, 40000, Lookups =, 40000
+Filter, Size in bytes, Ratio of yes-queries bits per item (average), optimal bits per item (w.r.t. yes-queries), difference of BPI to optimal BPI, ratio of BPI to optimal BPI
+SimHash-4x16-3of4                 	, 294912      , 0.33165     , 58.9824     , 1.59227     , 57.3901     , 37.043      
