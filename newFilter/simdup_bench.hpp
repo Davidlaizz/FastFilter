@@ -13,6 +13,7 @@
 #include <fstream>
 #include <iomanip>
 #include <limits>
+#include <iostream>
 #include <random>
 #include <sstream>
 #include <string>
