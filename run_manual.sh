@@ -33,7 +33,12 @@ if [[ ! -d "$ROOT/.env" ]]; then
   micromamba create -y -p "$ROOT/.env" \
     python=3.10 cmake make gcc_linux-64=10 gxx_linux-64=10
 fi
-micromamba activate "$ROOT/.env"
+
+if [[ "${CONDA_PREFIX:-}" != "$ROOT/.env" ]]; then
+  set +u
+  micromamba activate "$ROOT/.env"
+  set -u
+fi
 
 python -m pip install -U pip numpy pillow matplotlib pandas brokenaxes
 
