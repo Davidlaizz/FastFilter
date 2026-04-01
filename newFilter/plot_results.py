@@ -124,9 +124,12 @@ def draw_figure1(perf_blocks, n, out_path: Path):
     uni_ns = median_series(perf_blocks, 1)
     yes_ns = median_series(perf_blocks, 2)
 
-    add_ops = [step / (x / 1e9) for x in add_ns]
-    uni_ops = [step / (x / 1e9) for x in uni_ns]
-    yes_ops = [step / (x / 1e9) for x in yes_ns]
+    def safe_ops(ns_value: float) -> float:
+        return (step / (ns_value / 1e9)) if ns_value > 0 else 0.0
+
+    add_ops = [safe_ops(x) for x in add_ns]
+    uni_ops = [safe_ops(x) for x in uni_ns]
+    yes_ops = [safe_ops(x) for x in yes_ns]
 
     fig, axes = plt.subplots(1, 3, figsize=(14, 4), sharex=True)
     titles = ["(a) Insertions", "(b) Uniform lookups", "(c) Yes lookups"]
