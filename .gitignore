@@ -4,4 +4,8 @@
 /build/*
 /ColumbiaArchive/
 /LGarchive/
+<<<<<<< HEAD
 *.png
+=======
+**/**.png
+>>>>>>> dc41b9a (Add .png to .gitignore)
