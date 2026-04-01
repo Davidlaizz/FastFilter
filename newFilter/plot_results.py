@@ -133,7 +133,10 @@ def draw_figure1(perf_blocks, n, out_path: Path):
     series = [add_ops, uni_ops, yes_ops]
 
     for ax, title, y in zip(axes, titles, series):
-        ax.plot(load, y, marker="o", linewidth=1.8, markersize=3, label="newFilter")
+        if title == "(b) Uniform lookups":
+            ax.plot(load[:-1], y[:-1], marker="o", linewidth=1.8, markersize=3, label="newFilter")
+        else:
+            ax.plot(load, y, marker="o", linewidth=1.8, markersize=3, label="newFilter")
         ax.set_title(title)
         ax.set_xlabel("Load")
         ax.set_ylabel("ops/sec")
@@ -152,7 +155,7 @@ def draw_figure2(hitrate_blocks, out_path: Path):
     pos_hit = median_series(hitrate_blocks, 1)
 
     fig, ax = plt.subplots(figsize=(8.5, 4.2))
-    ax.plot(load, neg_hit, marker="o", linewidth=1.8, markersize=3, label="Negative query hit rate")
+    ax.plot(load[:-1], neg_hit[:-1], marker="o", linewidth=1.8, markersize=3, label="Negative query hit rate")
     ax.plot(load, pos_hit, marker="s", linewidth=1.8, markersize=3, label="Positive query hit rate")
     ax.set_title("Query Hit Rates vs Load (newFilter)")
     ax.set_xlabel("Load")
@@ -169,7 +172,7 @@ def real_ratio_series(hitrate_blocks):
     rounds = len(hitrate_blocks[0])
     precision_vals = []
     real_in_queries_vals = []
-    for r in range(rounds):
+    for r in range(rounds - 1):
         p_row = []
         q_row = []
         for block in hitrate_blocks:
@@ -194,7 +197,7 @@ def real_ratio_series(hitrate_blocks):
 
 def draw_figure3(hitrate_blocks, out_path: Path):
     bench_precision = len(hitrate_blocks[0])
-    load = [(i + 1) / bench_precision for i in range(bench_precision)]
+    load = [(i + 1) / bench_precision for i in range(bench_precision - 1)]
     precision_vals, real_in_queries_vals = real_ratio_series(hitrate_blocks)
 
     fig, ax = plt.subplots(figsize=(8.5, 4.2))

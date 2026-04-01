@@ -95,16 +95,26 @@ Dedicated targets:
 - `measure_newfilter_fpp`
 
 Outputs:
-- Throughput raw data: `scripts/Inputs/SimHash-4x16-OR`
-- Query hit-rate raw data: `scripts/Inputs/SimHash-4x16-OR-hitrate`
-- Fill/occupancy raw data: `scripts/Inputs/SimHash-4x16-OR-fill`
+- Throughput raw data: `scripts/Inputs/SimHash-4x16-3of4`
+- Query hit-rate raw data: `scripts/Inputs/SimHash-4x16-3of4-hitrate`
+- Fill/occupancy raw data: `scripts/Inputs/SimHash-4x16-3of4-fill`
 - Build/FPP summaries: `scripts/build-newfilter.csv`, `scripts/fpp_table_newfilter.csv`
 - Plotted PDFs: `scripts/newfilter-throughput.pdf`, `scripts/newfilter-hitrate.pdf`, `scripts/newfilter-realdata-ratio.pdf`, `scripts/newfilter-items.pdf`, `scripts/newfilter-occupancy.pdf`
+
+Hash input:
+- Set `SIMDUP_HASH_FILE` to a text file containing one 64-bit hash per line.
+- Optional: set `SIMDUP_SHUFFLE=1` to shuffle the hash list before benchmarking.
+- Example generator (Linux):
+```
+python3 ../newFilter/hash_images.py --input /path/to/images --method phash --output ../scripts/Inputs/hashes_phash.txt
+```
 
 Example:
 ```
 t="measure_newfilter_perf measure_newfilter_built measure_newfilter_fpp"
 time cmake --build ./ --target $t -j 20
+export SIMDUP_HASH_FILE=../scripts/Inputs/hashes_phash.txt
+export SIMDUP_SHUFFLE=1
 taskset -c 2 ./measure_newfilter_perf
 taskset -c 2 ./measure_newfilter_built
 taskset -c 2 ./measure_newfilter_fpp

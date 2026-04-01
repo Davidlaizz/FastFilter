@@ -8,6 +8,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
@@ -26,12 +27,14 @@ using ns = std::chrono::nanoseconds;
 constexpr size_t kN = 65000;
 constexpr size_t kBenchPrecision = 20;
 constexpr size_t kRounds = 9;
-constexpr const char *kPerfPath = "../scripts/Inputs/SimHash-4x16-OR";
-constexpr const char *kHitRatePath = "../scripts/Inputs/SimHash-4x16-OR-hitrate";
-constexpr const char *kFillPath = "../scripts/Inputs/SimHash-4x16-OR-fill";
+constexpr const char *kPerfPath = "../scripts/Inputs/SimHash-4x16-3of4";
+constexpr const char *kHitRatePath = "../scripts/Inputs/SimHash-4x16-3of4-hitrate";
+constexpr const char *kFillPath = "../scripts/Inputs/SimHash-4x16-3of4-fill";
 constexpr const char *kBuildPath = "../scripts/build-newfilter.csv";
 constexpr const char *kFppPath = "../scripts/fpp_table_newfilter.csv";
-constexpr const char *kFilterName = "SimHash-4x16-OR";
+constexpr const char *kFilterName = "SimHash-4x16-3of4";
+constexpr const char *kHashFileEnv = "SIMDUP_HASH_FILE";
+constexpr const char *kShuffleEnv = "SIMDUP_SHUFFLE";
 
 struct PerfRow {
     u64 add_ns = 0;
@@ -79,6 +82,73 @@ inline void fill_vec_random(std::vector<u64> *vec, size_t number_of_elements) {
     for (size_t i = 0; i < number_of_elements; ++i) {
         vec->at(i) = dist(rng());
     }
+}
+
+inline bool parse_u64_token(const std::string &token, u64 *value) {
+    if (token.empty()) {
+        return false;
+    }
+    int base = 10;
+    if (token.rfind("0x", 0) == 0 || token.rfind("0X", 0) == 0) {
+        base = 16;
+    } else {
+        for (char c : token) {
+            if ((c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+                base = 16;
+                break;
+            }
+        }
+    }
+    char *end = nullptr;
+    errno = 0;
+    unsigned long long parsed = std::strtoull(token.c_str(), &end, base);
+    if (end == token.c_str() || *end != '\0' || errno != 0) {
+        return false;
+    }
+    *value = static_cast<u64>(parsed);
+    return true;
+}
+
+inline bool load_hashes_from_env(std::vector<u64> *vec) {
+    const char *path = std::getenv(kHashFileEnv);
+    if (path == nullptr || path[0] == '\0') {
+        return false;
+    }
+    std::ifstream file(path);
+    if (!file.is_open()) {
+        std::cerr << "Failed to open hash file: " << path << std::endl;
+        return false;
+    }
+    vec->clear();
+    std::string line;
+    while (std::getline(file, line)) {
+        const auto comment_pos = line.find('#');
+        if (comment_pos != std::string::npos) {
+            line = line.substr(0, comment_pos);
+        }
+        std::istringstream ss(line);
+        std::string token;
+        if (!(ss >> token)) {
+            continue;
+        }
+        u64 value = 0;
+        if (!parse_u64_token(token, &value)) {
+            std::string token2;
+            if (!(ss >> token2) || !parse_u64_token(token2, &value)) {
+                continue;
+            }
+        }
+        vec->push_back(value);
+    }
+    if (vec->empty()) {
+        std::cerr << "Hash file is empty or invalid: " << path << std::endl;
+        return false;
+    }
+    const char *shuffle_flag = std::getenv(kShuffleEnv);
+    if (shuffle_flag != nullptr && shuffle_flag[0] != '\0' && shuffle_flag[0] != '0') {
+        std::shuffle(vec->begin(), vec->end(), rng());
+    }
+    return true;
 }
 
 template<typename Functor>
@@ -219,16 +289,22 @@ inline void append_fill_block(size_t filter_max_capacity,
 
 inline void run_perf_single_round(size_t n = kN, size_t bench_precision = kBenchPrecision) {
     ensure_output_dirs();
-    const size_t add_step = n / bench_precision;
-    const size_t find_step = n / bench_precision;
+    std::vector<u64> add_vec;
+    bool loaded = load_hashes_from_env(&add_vec);
+    if (!loaded) {
+        fill_vec_random(&add_vec, n);
+    }
+    const size_t n_effective = loaded ? add_vec.size() : n;
+    const size_t add_step = n_effective / bench_precision;
+    if (add_step == 0) {
+        std::cerr << "Not enough items for benchmark: n=" << n_effective << std::endl;
+        return;
+    }
+    const size_t find_step = add_step;
     const size_t true_find_step = add_step;
 
-    std::vector<u64> add_vec, find_vec;
-    fill_vec_random(&add_vec, n);
-    fill_vec_random(&find_vec, n);
-
     const auto init_start = std::chrono::high_resolution_clock::now();
-    SimHash4x16OrFilter filter(n);
+    SimHash4x16OrFilter filter(n_effective);
     const auto init_end = std::chrono::high_resolution_clock::now();
     const auto init_time = std::chrono::duration_cast<ns>(init_end - init_start).count();
 
@@ -239,17 +315,22 @@ inline void run_perf_single_round(size_t n = kN, size_t bench_precision = kBench
     for (size_t round = 0; round < bench_precision; ++round) {
         const size_t add_start = round * add_step;
         const size_t add_end = add_start + add_step;
-        const size_t find_start = round * find_step;
-        const size_t find_end = find_start + find_step;
 
         rows[round].add_ns = time_ns([&] {
             for (size_t i = add_start; i < add_end; ++i) {
                 filter.Add(add_vec[i]);
             }
         });
-
-        const auto neg_lookup = timed_query_hits_on_range(filter, find_vec, find_start, find_end);
-        rows[round].uniform_lookup_ns = neg_lookup.first;
+        const bool has_negative = (round + 1) < bench_precision;
+        std::pair<u64, size_t> neg_lookup{0, 0};
+        if (has_negative) {
+            const size_t neg_start = add_end;
+            const size_t neg_end = neg_start + find_step;
+            neg_lookup = timed_query_hits_on_range(filter, add_vec, neg_start, neg_end);
+            rows[round].uniform_lookup_ns = neg_lookup.first;
+        } else {
+            rows[round].uniform_lookup_ns = 0;
+        }
 
         const auto positive_sample = make_positive_sample(add_vec, add_end, true_find_step);
         const auto pos_lookup = timed_query_hits(filter, positive_sample);
@@ -258,9 +339,11 @@ inline void run_perf_single_round(size_t n = kN, size_t bench_precision = kBench
 
         hit_rows[round].negative_hits = neg_lookup.second;
         hit_rows[round].positive_hits = pos_lookup.second;
-        hit_rows[round].negative_queries = find_step;
+        hit_rows[round].negative_queries = has_negative ? find_step : 0;
         hit_rows[round].positive_queries = true_find_step;
-        hit_rows[round].negative_hit_rate = static_cast<double>(neg_lookup.second) / static_cast<double>(find_step);
+        hit_rows[round].negative_hit_rate = has_negative
+                                                ? static_cast<double>(neg_lookup.second) / static_cast<double>(find_step)
+                                                : std::numeric_limits<double>::quiet_NaN();
         hit_rows[round].positive_hit_rate = static_cast<double>(pos_lookup.second) / static_cast<double>(true_find_step);
 
         fill_rows[round].add_attempts = filter.get_add_attempts();
@@ -271,15 +354,19 @@ inline void run_perf_single_round(size_t n = kN, size_t bench_precision = kBench
         fill_rows[round].slot_occupancy_ratio = filter.get_slot_occupancy_ratio();
     }
 
-    append_perf_block(filter, init_time, n, n, rows, kPerfPath);
-    append_hitrate_block(n, find_step, true_find_step, hit_rows, kHitRatePath);
-    append_fill_block(n, bench_precision, fill_rows, kFillPath);
+    append_perf_block(filter, init_time, n_effective, n_effective, rows, kPerfPath);
+    append_hitrate_block(n_effective, find_step, true_find_step, hit_rows, kHitRatePath);
+    append_fill_block(n_effective, bench_precision, fill_rows, kFillPath);
 }
 
 inline auto run_build_single(size_t n = kN) -> u64 {
     std::vector<u64> add_vec;
-    fill_vec_random(&add_vec, n);
-    SimHash4x16OrFilter filter(n);
+    bool loaded = load_hashes_from_env(&add_vec);
+    if (!loaded) {
+        fill_vec_random(&add_vec, n);
+    }
+    const size_t n_effective = loaded ? add_vec.size() : n;
+    SimHash4x16OrFilter filter(n_effective);
     return time_ns([&] {
         for (const auto item : add_vec) {
             filter.Add(item);
@@ -289,35 +376,42 @@ inline auto run_build_single(size_t n = kN) -> u64 {
 
 inline void run_build_suite(size_t rounds = kRounds, size_t n = kN) {
     std::fstream file(kBuildPath, std::fstream::in | std::fstream::out | std::fstream::app);
+    std::vector<u64> add_vec;
+    bool loaded = load_hashes_from_env(&add_vec);
+    const size_t n_effective = loaded ? add_vec.size() : n;
     file << std::endl;
-    file << "n = " << n << std::endl;
+    file << "n = " << n_effective << std::endl;
     file << kFilterName << ", ";
     for (size_t i = 0; i < rounds; ++i) {
-        file << run_build_single(n) << ", ";
+        file << run_build_single(n_effective) << ", ";
     }
     file << std::endl;
 }
 
 inline void run_fpp_single(size_t n = kN) {
     std::vector<u64> add_vec, find_vec;
-    fill_vec_random(&add_vec, n);
-    fill_vec_random(&find_vec, n);
+    bool loaded = load_hashes_from_env(&add_vec);
+    if (!loaded) {
+        fill_vec_random(&add_vec, n);
+    }
+    const size_t n_effective = loaded ? add_vec.size() : n;
+    fill_vec_random(&find_vec, n_effective);
 
-    SimHash4x16OrFilter filter(n);
+    SimHash4x16OrFilter filter(n_effective);
     for (const auto item : add_vec) {
         filter.Add(item);
     }
 
     const size_t yes_on_negatives = count_positive(filter, find_vec);
     const double positive_ratio = static_cast<double>(yes_on_negatives) / static_cast<double>(find_vec.size());
-    const double bpi = static_cast<double>(filter.get_byte_size()) * 8.0 / static_cast<double>(n);
+    const double bpi = static_cast<double>(filter.get_byte_size()) * 8.0 / static_cast<double>(n_effective);
     const double safe_ratio = std::max(positive_ratio, std::numeric_limits<double>::min());
     const double optimal_bits_for_err = -std::log2(safe_ratio);
     const double bpi_diff = bpi - optimal_bits_for_err;
     const double bpi_ratio = bpi / optimal_bits_for_err;
 
     std::fstream file(kFppPath, std::fstream::in | std::fstream::out | std::fstream::app);
-    file << "n =, " << n << ", Lookups =, " << n << std::endl;
+    file << "n =, " << n_effective << ", Lookups =, " << n_effective << std::endl;
     file << "Filter, Size in bytes, Ratio of yes-queries bits per item (average), optimal bits per item (w.r.t. yes-queries), difference of BPI to optimal BPI, ratio of BPI to optimal BPI" << std::endl;
     file << std::setw(34) << std::left << kFilterName << "\t, " << std::setw(12) << std::left << filter.get_byte_size()
          << ", " << std::setw(12) << std::left << positive_ratio
