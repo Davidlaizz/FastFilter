@@ -28,12 +28,12 @@ using ns = std::chrono::nanoseconds;
 constexpr size_t kN = 65000;
 constexpr size_t kBenchPrecision = 20;
 constexpr size_t kRounds = 9;
-constexpr const char *kPerfPath = "../scripts/Inputs/SimHash-4x16-3of4";
-constexpr const char *kHitRatePath = "../scripts/Inputs/SimHash-4x16-3of4-hitrate";
-constexpr const char *kFillPath = "../scripts/Inputs/SimHash-4x16-3of4-fill";
+constexpr const char *kPerfPath = "../scripts/Inputs/SimHash-4x16-OR";
+constexpr const char *kHitRatePath = "../scripts/Inputs/SimHash-4x16-OR-hitrate";
+constexpr const char *kFillPath = "../scripts/Inputs/SimHash-4x16-OR-fill";
 constexpr const char *kBuildPath = "../scripts/build-newfilter.csv";
 constexpr const char *kFppPath = "../scripts/fpp_table_newfilter.csv";
-constexpr const char *kFilterName = "SimHash-4x16-3of4";
+constexpr const char *kFilterName = "SimHash-4x16-OR";
 constexpr const char *kHashFileEnv = "SIMDUP_HASH_FILE";
 constexpr const char *kShuffleEnv = "SIMDUP_SHUFFLE";
 

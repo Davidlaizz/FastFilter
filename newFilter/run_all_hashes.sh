@@ -52,9 +52,9 @@ for dataset_entry in "${DATASETS[@]}"; do
     export SIMDUP_HASH_FILE="$hash_file"
     export SIMDUP_SHUFFLE="${SIMDUP_SHUFFLE:-1}"
 
-    rm -f "$INPUTS_DIR/SimHash-4x16-3of4" \
-          "$INPUTS_DIR/SimHash-4x16-3of4-hitrate" \
-          "$INPUTS_DIR/SimHash-4x16-3of4-fill" \
+    rm -f "$INPUTS_DIR/SimHash-4x16-OR" \
+          "$INPUTS_DIR/SimHash-4x16-OR-hitrate" \
+          "$INPUTS_DIR/SimHash-4x16-OR-fill" \
           "$SCRIPTS_DIR/build-newfilter.csv" \
           "$SCRIPTS_DIR/fpp_table_newfilter.csv"
 
@@ -69,7 +69,7 @@ for dataset_entry in "${DATASETS[@]}"; do
     shopt -s nullglob
     mv "$SCRIPTS_DIR"/newfilter-*.pdf "$outdir"/
     shopt -u nullglob
-    cp "$INPUTS_DIR"/SimHash-4x16-3of4* "$outdir"/
+    cp "$INPUTS_DIR"/SimHash-4x16-OR* "$outdir"/
     cp "$SCRIPTS_DIR/build-newfilter.csv" "$outdir/build-newfilter-${dataset_name}-${method}.csv"
     cp "$SCRIPTS_DIR/fpp_table_newfilter.csv" "$outdir/fpp_table_newfilter-${dataset_name}-${method}.csv"
   done
