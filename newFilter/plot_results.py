@@ -83,16 +83,7 @@ def parse_fill_blocks(path: Path):
                 if line:
                     parts = [p.strip() for p in line.split(",")]
                     if len(parts) >= 6:
-                        rows.append(
-                            (
-                                float(parts[0]),
-                                float(parts[1]),
-                                float(parts[2]),
-                                float(parts[3]),
-                                float(parts[4]),
-                                float(parts[5]),
-                            )
-                        )
+                        rows.append(tuple(float(p) for p in parts))
                 i += 1
             if rows:
                 blocks.append(rows)
@@ -100,11 +91,18 @@ def parse_fill_blocks(path: Path):
     return blocks
 
 
-def median_series(blocks, column):
+def median_series(blocks, column, default=0.0):
     rounds = len(blocks[0])
     out = []
     for r in range(rounds):
-        out.append(statistics.median(block[r][column] for block in blocks))
+        values = []
+        for block in blocks:
+            row = block[r]
+            if column < len(row):
+                values.append(row[column])
+            else:
+                values.append(default)
+        out.append(statistics.median(values))
     return out
 
 
@@ -249,6 +247,56 @@ def draw_figure4(fill_blocks, out_path: Path):
     plt.close(fig2)
 
 
+def draw_figure5(fill_blocks, out_path: Path):
+    # Branch stats appear only when extra columns are present.
+    if len(fill_blocks[0][0]) < 14:
+        return
+
+    bench_precision = len(fill_blocks[0])
+    load = [(i + 1) / bench_precision for i in range(bench_precision)]
+    add_attempts = median_series(fill_blocks, 0, default=1.0)
+
+    def ratio(series):
+        out = []
+        for val, base in zip(series, add_attempts):
+            out.append(val / base if base > 0 else 0.0)
+        return out
+
+    insert_zero = ratio(median_series(fill_blocks, 6))
+    insert_m1 = ratio(median_series(fill_blocks, 7))
+    insert_m2 = ratio(median_series(fill_blocks, 8))
+    insert_m3 = ratio(median_series(fill_blocks, 9))
+    dup_m1 = ratio(median_series(fill_blocks, 10))
+    dup_m2 = ratio(median_series(fill_blocks, 11))
+    dup_m3 = ratio(median_series(fill_blocks, 12))
+    dup_m4 = ratio(median_series(fill_blocks, 13))
+
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4.2), sharex=True, sharey=True)
+
+    axes[0].plot(load, insert_zero, marker="o", linewidth=1.6, markersize=3, label="Insert (0 segment match)")
+    axes[0].plot(load, insert_m1, marker="o", linewidth=1.6, markersize=3, label="Insert after 1 match")
+    axes[0].plot(load, insert_m2, marker="o", linewidth=1.6, markersize=3, label="Insert after 2 match")
+    axes[0].plot(load, insert_m3, marker="o", linewidth=1.6, markersize=3, label="Insert after 3 match")
+    axes[0].set_title("Insert Branch Ratios")
+    axes[0].set_xlabel("Load")
+    axes[0].set_ylabel("Ratio (per add)")
+    axes[0].grid(alpha=0.35)
+    axes[0].legend(loc="best", fontsize=8)
+
+    axes[1].plot(load, dup_m1, marker="s", linewidth=1.6, markersize=3, label="Dup via 1 match")
+    axes[1].plot(load, dup_m2, marker="s", linewidth=1.6, markersize=3, label="Dup via 2 match")
+    axes[1].plot(load, dup_m3, marker="s", linewidth=1.6, markersize=3, label="Dup via 3 match")
+    axes[1].plot(load, dup_m4, marker="s", linewidth=1.6, markersize=3, label="Dup via 4 match")
+    axes[1].set_title("Duplicate Branch Ratios")
+    axes[1].set_xlabel("Load")
+    axes[1].grid(alpha=0.35)
+    axes[1].legend(loc="best", fontsize=8)
+
+    fig.tight_layout()
+    fig.savefig(out_path, format="pdf", bbox_inches="tight")
+    plt.close(fig)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--perf", default="../scripts/Inputs/SimHash-4x16-OR")
@@ -280,14 +328,18 @@ def main():
     fig2_path = out_dir / "newfilter-hitrate.pdf"
     fig3_path = out_dir / "newfilter-realdata-ratio.pdf"
     fig4_path = out_dir / "newfilter-items.pdf"
+    fig5_path = out_dir / "newfilter-branches.pdf"
     draw_figure1(perf_blocks, n, fig1_path)
     draw_figure2(hitrate_blocks, fig2_path)
     draw_figure3(hitrate_blocks, fig3_path)
     draw_figure4(fill_blocks, fig4_path)
+    draw_figure5(fill_blocks, fig5_path)
     print(f"Saved: {fig1_path}")
     print(f"Saved: {fig2_path}")
     print(f"Saved: {fig3_path}")
     print(f"Saved: {fig4_path}")
+    if fig5_path.exists():
+        print(f"Saved: {fig5_path}")
 
 
 if __name__ == "__main__":

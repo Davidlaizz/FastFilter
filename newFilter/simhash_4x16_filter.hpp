@@ -1,6 +1,7 @@
 #ifndef NEW_FILTER_SIMHASH_4X16_FILTER_HPP
 #define NEW_FILTER_SIMHASH_4X16_FILTER_HPP
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -20,12 +21,28 @@ class SimHash4x16OrFilter {
         uint32_t id = 0;
     };
 
+    struct DedupDecision {
+        bool similar = false;
+        bool had_candidates = false;
+        uint8_t max_match = 0;
+        uint8_t dup_match = 0;
+    };
+
     std::vector<Record> records{};
     std::array<std::vector<std::vector<uint32_t>>, kWays> index{};
     std::array<size_t, kWays> occupied_segments_per_way{};
     size_t add_attempts = 0;
     size_t logical_items_any = 0;
     size_t logical_items_full = 0;
+
+    size_t insert_zero_segment = 0;
+    size_t insert_after_match1 = 0;
+    size_t insert_after_match2 = 0;
+    size_t insert_after_match3 = 0;
+    size_t dup_match1 = 0;
+    size_t dup_match2 = 0;
+    size_t dup_match3 = 0;
+    size_t dup_match4 = 0;
 
     mutable std::vector<uint32_t> seen_epoch{};
     mutable uint32_t seen_token = 1;
@@ -56,9 +73,10 @@ class SimHash4x16OrFilter {
         }
     }
 
-    inline bool is_similar(uint64_t item, const std::array<uint16_t, kWays> &segs) const {
+    inline DedupDecision check_similarity(uint64_t item, const std::array<uint16_t, kWays> &segs) const {
+        DedupDecision decision{};
         if (records.empty()) {
-            return false;
+            return decision;
         }
 
         ensure_seen_size();
@@ -67,6 +85,9 @@ class SimHash4x16OrFilter {
 
         for (size_t way = 0; way < kWays; ++way) {
             const auto &bucket = index[way][segs[way]];
+            if (!bucket.empty()) {
+                decision.had_candidates = true;
+            }
             for (uint32_t id : bucket) {
                 if (seen_epoch[id] != seen_token) {
                     seen_epoch[id] = seen_token;
@@ -76,13 +97,14 @@ class SimHash4x16OrFilter {
         }
 
         if (candidates.empty()) {
-            return false;
+            decision.had_candidates = false;
+            return decision;
         }
 
         for (uint32_t id : candidates) {
             const Record &rec = records[id];
             uint8_t match_mask = 0;
-            int match_count = 0;
+            uint8_t match_count = 0;
             for (size_t way = 0; way < kWays; ++way) {
                 if (segs[way] == rec.segments[way]) {
                     match_mask |= static_cast<uint8_t>(1u << way);
@@ -92,8 +114,13 @@ class SimHash4x16OrFilter {
             if (match_count == 0) {
                 continue;
             }
-            if (match_count == static_cast<int>(kWays)) {
-                return true;
+            if (match_count > decision.max_match) {
+                decision.max_match = match_count;
+            }
+            if (match_count == static_cast<uint8_t>(kWays)) {
+                decision.similar = true;
+                decision.dup_match = match_count;
+                return decision;
             }
 
             uint64_t remaining_mask = 0;
@@ -105,10 +132,12 @@ class SimHash4x16OrFilter {
             const uint64_t diff = (item ^ rec.full_hash) & remaining_mask;
             const int hamming = __builtin_popcountll(diff);
             if (hamming <= kMaxHamming) {
-                return true;
+                decision.similar = true;
+                decision.dup_match = match_count;
+                return decision;
             }
         }
-        return false;
+        return decision;
     }
 
 public:
@@ -121,16 +150,32 @@ public:
 
     inline auto Find(const uint64_t &item) const -> bool {
         const auto segs = split_segments(item);
-        return is_similar(item, segs);
+        const auto decision = check_similarity(item, segs);
+        return decision.similar;
     }
 
     inline bool Add(const uint64_t &item) {
         add_attempts++;
         const auto segs = split_segments(item);
 
-        if (!records.empty()) {
-            if (is_similar(item, segs)) {
-                return false;
+        const auto decision = check_similarity(item, segs);
+        if (!decision.had_candidates) {
+            insert_zero_segment++;
+        } else if (decision.similar) {
+            switch (decision.dup_match) {
+                case 1: dup_match1++; break;
+                case 2: dup_match2++; break;
+                case 3: dup_match3++; break;
+                case 4: dup_match4++; break;
+                default: break;
+            }
+            return false;
+        } else {
+            switch (decision.max_match) {
+                case 1: insert_after_match1++; break;
+                case 2: insert_after_match2++; break;
+                case 3: insert_after_match3++; break;
+                default: break;
             }
         }
 
@@ -202,6 +247,38 @@ public:
 
     auto get_slot_occupancy_ratio() const -> double {
         return static_cast<double>(get_total_occupied_slots()) / static_cast<double>(get_total_slot_capacity());
+    }
+
+    auto get_insert_zero_segment() const -> size_t {
+        return insert_zero_segment;
+    }
+
+    auto get_insert_after_match1() const -> size_t {
+        return insert_after_match1;
+    }
+
+    auto get_insert_after_match2() const -> size_t {
+        return insert_after_match2;
+    }
+
+    auto get_insert_after_match3() const -> size_t {
+        return insert_after_match3;
+    }
+
+    auto get_dup_match1() const -> size_t {
+        return dup_match1;
+    }
+
+    auto get_dup_match2() const -> size_t {
+        return dup_match2;
+    }
+
+    auto get_dup_match3() const -> size_t {
+        return dup_match3;
+    }
+
+    auto get_dup_match4() const -> size_t {
+        return dup_match4;
     }
 };
 

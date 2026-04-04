@@ -60,6 +60,14 @@ struct FillRow {
     size_t total_occupied_slots = 0;
     size_t total_slot_capacity = 0;
     double slot_occupancy_ratio = 0;
+    size_t insert_zero_segment = 0;
+    size_t insert_after_match1 = 0;
+    size_t insert_after_match2 = 0;
+    size_t insert_after_match3 = 0;
+    size_t dup_match1 = 0;
+    size_t dup_match2 = 0;
+    size_t dup_match3 = 0;
+    size_t dup_match4 = 0;
 };
 
 inline volatile size_t g_lookup_sink = 0;
@@ -271,7 +279,9 @@ inline void append_fill_block(size_t filter_max_capacity,
     file << "FILTER_MAX_CAPACITY\t" << filter_max_capacity << std::endl;
     file << "BENCH_PRECISION\t" << bench_precision << std::endl;
     file << std::endl;
-    file << "# add_attempts, logical_items_any, logical_items_full, total_occupied_slots, total_slot_capacity, slot_occupancy_ratio." << std::endl;
+    file << "# add_attempts, logical_items_any, logical_items_full, total_occupied_slots, total_slot_capacity, slot_occupancy_ratio,"
+            " insert_zero_segment, insert_after_match1, insert_after_match2, insert_after_match3,"
+            " dup_match1, dup_match2, dup_match3, dup_match4." << std::endl;
     file << std::endl;
     file << "FILL_START" << std::endl;
     file << std::fixed << std::setprecision(8);
@@ -281,7 +291,15 @@ inline void append_fill_block(size_t filter_max_capacity,
              << row.logical_items_full << ", "
              << row.total_occupied_slots << ", "
              << row.total_slot_capacity << ", "
-             << row.slot_occupancy_ratio << std::endl;
+             << row.slot_occupancy_ratio << ", "
+             << row.insert_zero_segment << ", "
+             << row.insert_after_match1 << ", "
+             << row.insert_after_match2 << ", "
+             << row.insert_after_match3 << ", "
+             << row.dup_match1 << ", "
+             << row.dup_match2 << ", "
+             << row.dup_match3 << ", "
+             << row.dup_match4 << std::endl;
     }
     file << std::endl;
     file << "FILL_END" << std::endl;
@@ -353,6 +371,14 @@ inline void run_perf_single_round(size_t n = kN, size_t bench_precision = kBench
         fill_rows[round].total_occupied_slots = filter.get_total_occupied_slots();
         fill_rows[round].total_slot_capacity = filter.get_total_slot_capacity();
         fill_rows[round].slot_occupancy_ratio = filter.get_slot_occupancy_ratio();
+        fill_rows[round].insert_zero_segment = filter.get_insert_zero_segment();
+        fill_rows[round].insert_after_match1 = filter.get_insert_after_match1();
+        fill_rows[round].insert_after_match2 = filter.get_insert_after_match2();
+        fill_rows[round].insert_after_match3 = filter.get_insert_after_match3();
+        fill_rows[round].dup_match1 = filter.get_dup_match1();
+        fill_rows[round].dup_match2 = filter.get_dup_match2();
+        fill_rows[round].dup_match3 = filter.get_dup_match3();
+        fill_rows[round].dup_match4 = filter.get_dup_match4();
     }
 
     append_perf_block(filter, init_time, n_effective, n_effective, rows, kPerfPath);
