@@ -131,3 +131,9 @@ target_compile_options(measure_newfilter_fpp PRIVATE -Ofast -DNDEBUG)
 
 
 ################################################################################
+
+# 256-bit hamming linearity benchmark
+add_executable(measure_hamming256_linear newHamming256/main.cpp)
+target_compile_options(measure_hamming256_linear PRIVATE -O3 -DNDEBUG)
+
+################################################################################
