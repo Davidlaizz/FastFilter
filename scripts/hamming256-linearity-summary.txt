@@ -1,0 +1,6 @@
+time_vs_n_slope=0.000039935904
+time_vs_n_intercept=-1.820823311558
+time_vs_n_r2=0.997902157834
+time_vs_comparisons_slope=3.993590361030e-09
+time_vs_comparisons_intercept=-1.820823311558
+time_vs_comparisons_r2=0.997902157834
