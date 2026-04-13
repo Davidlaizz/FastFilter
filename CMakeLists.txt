@@ -76,6 +76,11 @@ set(NEWFILTER_FILES
         newFilter/simdup_bench.hpp
 )
 
+set(NEWFILTER256_FILES
+        newfilter256/prefix_filter_256.hpp
+        newfilter256/bench.hpp
+)
+
 
 ################################################################################
 ################################################################################
@@ -129,6 +134,23 @@ target_compile_options(measure_newfilter_built PRIVATE -Ofast -DNDEBUG)
 add_executable(measure_newfilter_fpp ${NEWFILTER_FILES} newFilter/main-fpp.cpp)
 target_compile_options(measure_newfilter_fpp PRIVATE -Ofast -DNDEBUG)
 
+
+################################################################################
+
+# Measure newfilter256 only (256-bit split 4x64)
+add_executable(measure_newfilter256_perf ${NEWFILTER256_FILES} newfilter256/main-perf.cpp)
+add_executable(measure_newfilter256_built ${NEWFILTER256_FILES} newfilter256/main-built.cpp)
+add_executable(measure_newfilter256_fpp ${NEWFILTER256_FILES} newfilter256/main-fpp.cpp)
+
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(measure_newfilter256_perf PRIVATE -Ofast -DNDEBUG -mavx512f -mavx512bw -mavx512vl -mavx512vbmi)
+    target_compile_options(measure_newfilter256_built PRIVATE -Ofast -DNDEBUG -mavx512f -mavx512bw -mavx512vl -mavx512vbmi)
+    target_compile_options(measure_newfilter256_fpp PRIVATE -Ofast -DNDEBUG -mavx512f -mavx512bw -mavx512vl -mavx512vbmi)
+else ()
+    target_compile_options(measure_newfilter256_perf PRIVATE -Ofast -DNDEBUG)
+    target_compile_options(measure_newfilter256_built PRIVATE -Ofast -DNDEBUG)
+    target_compile_options(measure_newfilter256_fpp PRIVATE -Ofast -DNDEBUG)
+endif ()
 
 ################################################################################
 
