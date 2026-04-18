@@ -6,6 +6,7 @@ cmake_minimum_required(VERSION 3.10)
 # set(CMAKE_CXX_COMPILER clang++)
 set(CMAKE_CXX_STANDARD 17)
 project(APD_ONLY)
+find_package(Threads REQUIRED)
 
 # set(COMPILE_FLAGS "-fprofile-instr-generate -fcoverage-mapping")
 # set(CMAKE_EXE_LINKER_FLAGS "-fprofile-instr-generate")
@@ -164,6 +165,9 @@ add_executable(measure_newfilter256_compact_fpp ${NEWFILTER256_COMPACT_FILES} ne
 target_compile_options(measure_newfilter256_compact_perf PRIVATE -Ofast -DNDEBUG)
 target_compile_options(measure_newfilter256_compact_built PRIVATE -Ofast -DNDEBUG)
 target_compile_options(measure_newfilter256_compact_fpp PRIVATE -Ofast -DNDEBUG)
+target_link_libraries(measure_newfilter256_compact_perf PRIVATE Threads::Threads)
+target_link_libraries(measure_newfilter256_compact_built PRIVATE Threads::Threads)
+target_link_libraries(measure_newfilter256_compact_fpp PRIVATE Threads::Threads)
 
 ################################################################################
 
