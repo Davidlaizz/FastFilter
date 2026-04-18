@@ -81,6 +81,14 @@ set(NEWFILTER256_FILES
         newfilter256/bench.hpp
 )
 
+set(NEWFILTER256_COMPACT_FILES
+        newfilter256_compact/common.hpp
+        newfilter256_compact/compact_filter_layer.hpp
+        newfilter256_compact/compact_verify_layer.hpp
+        newfilter256_compact/index.hpp
+        newfilter256_compact/bench.hpp
+)
+
 
 ################################################################################
 ################################################################################
@@ -142,15 +150,20 @@ add_executable(measure_newfilter256_perf ${NEWFILTER256_FILES} newfilter256/main
 add_executable(measure_newfilter256_built ${NEWFILTER256_FILES} newfilter256/main-built.cpp)
 add_executable(measure_newfilter256_fpp ${NEWFILTER256_FILES} newfilter256/main-fpp.cpp)
 
-if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    target_compile_options(measure_newfilter256_perf PRIVATE -Ofast -DNDEBUG -mavx512f -mavx512bw -mavx512vl -mavx512vbmi)
-    target_compile_options(measure_newfilter256_built PRIVATE -Ofast -DNDEBUG -mavx512f -mavx512bw -mavx512vl -mavx512vbmi)
-    target_compile_options(measure_newfilter256_fpp PRIVATE -Ofast -DNDEBUG -mavx512f -mavx512bw -mavx512vl -mavx512vbmi)
-else ()
-    target_compile_options(measure_newfilter256_perf PRIVATE -Ofast -DNDEBUG)
-    target_compile_options(measure_newfilter256_built PRIVATE -Ofast -DNDEBUG)
-    target_compile_options(measure_newfilter256_fpp PRIVATE -Ofast -DNDEBUG)
-endif ()
+target_compile_options(measure_newfilter256_perf PRIVATE -Ofast -DNDEBUG)
+target_compile_options(measure_newfilter256_built PRIVATE -Ofast -DNDEBUG)
+target_compile_options(measure_newfilter256_fpp PRIVATE -Ofast -DNDEBUG)
+
+################################################################################
+
+# Measure newfilter256_compact (256-bit split 4x64, compact L1/L2 + verify layer)
+add_executable(measure_newfilter256_compact_perf ${NEWFILTER256_COMPACT_FILES} newfilter256_compact/main-perf.cpp)
+add_executable(measure_newfilter256_compact_built ${NEWFILTER256_COMPACT_FILES} newfilter256_compact/main-built.cpp)
+add_executable(measure_newfilter256_compact_fpp ${NEWFILTER256_COMPACT_FILES} newfilter256_compact/main-fpp.cpp)
+
+target_compile_options(measure_newfilter256_compact_perf PRIVATE -Ofast -DNDEBUG)
+target_compile_options(measure_newfilter256_compact_built PRIVATE -Ofast -DNDEBUG)
+target_compile_options(measure_newfilter256_compact_fpp PRIVATE -Ofast -DNDEBUG)
 
 ################################################################################
 
