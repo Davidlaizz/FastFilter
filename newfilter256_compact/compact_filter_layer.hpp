@@ -8,6 +8,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <stdexcept>
+#include <string>
 #include <vector>
 
 namespace newfilter256_compact {
@@ -43,15 +45,21 @@ public:
 
 private:
     static constexpr int32_t kInvalidIndex = -1;
+    static constexpr size_t kPackedSlotBytes = 5; // id24 + fp12 + 4bit pad
+    static constexpr uint32_t kMaxPackedId = 0xFFFFFFu;
+    static constexpr size_t kL2PageSlots = 32;
+
+    struct L2Page {
+        int32_t next = kInvalidIndex;
+        uint16_t size = 0;
+        std::array<uint8_t, kL2PageSlots * kPackedSlotBytes> data{};
+    };
 
     struct WayStorage {
         std::vector<uint8_t> l1_sizes{};
-        std::vector<uint32_t> l1_ids{};
-        std::vector<uint16_t> l1_fps{};
+        std::vector<uint8_t> l1_slots{};
         std::vector<int32_t> l2_heads{};
-        std::vector<uint32_t> l2_next{};
-        std::vector<uint32_t> l2_ids{};
-        std::vector<uint16_t> l2_fps{};
+        std::vector<L2Page> l2_pages{};
         size_t l1_slots_used = 0;
         size_t l2_slots_used = 0;
     };
@@ -101,7 +109,34 @@ private:
     }
 
     inline auto bucket_offset(uint32_t bin) const -> size_t {
-        return static_cast<size_t>(bin) * kBucketCap;
+        return static_cast<size_t>(bin) * kBucketCap * kPackedSlotBytes;
+    }
+
+    inline static void write_packed_slot(uint8_t *dst, uint32_t id, uint16_t fp) {
+        dst[0] = static_cast<uint8_t>(id & 0xFFu);
+        dst[1] = static_cast<uint8_t>((id >> 8u) & 0xFFu);
+        dst[2] = static_cast<uint8_t>((id >> 16u) & 0xFFu);
+        dst[3] = static_cast<uint8_t>(fp & 0xFFu);
+        dst[4] = static_cast<uint8_t>((fp >> 8u) & 0x0Fu);
+    }
+
+    inline static auto read_packed_id(const uint8_t *src) -> uint32_t {
+        return static_cast<uint32_t>(src[0]) |
+               (static_cast<uint32_t>(src[1]) << 8u) |
+               (static_cast<uint32_t>(src[2]) << 16u);
+    }
+
+    inline static auto read_packed_fp(const uint8_t *src) -> uint16_t {
+        return static_cast<uint16_t>(static_cast<uint16_t>(src[3]) |
+                                     (static_cast<uint16_t>(src[4] & 0x0Fu) << 8u));
+    }
+
+    inline static auto page_slot_ptr(L2Page *page, size_t idx) -> uint8_t * {
+        return &page->data[idx * kPackedSlotBytes];
+    }
+
+    inline static auto page_slot_ptr(const L2Page *page, size_t idx) -> const uint8_t * {
+        return &page->data[idx * kPackedSlotBytes];
     }
 
     inline void ensure_scratch_size(size_t logical_items) const {
@@ -161,17 +196,20 @@ private:
         ++collect_max_hit_hist_[summary.max_filter_hits];
     }
 
+    inline static void check_id_range(uint32_t id) {
+        if (id > kMaxPackedId) {
+            throw std::runtime_error("CompactFilterLayer id overflow: id exceeds 24-bit packing range");
+        }
+    }
+
 public:
     explicit CompactFilterLayer(size_t expected_items = 0) {
-        const size_t reserve_l2_each_way = std::max<size_t>(1, expected_items / 8);
+        const size_t reserve_l2_each_way = std::max<size_t>(1, expected_items / 16);
         for (size_t way = 0; way < kWays; ++way) {
             ways_[way].l1_sizes.assign(kBucketCount, 0);
-            ways_[way].l1_ids.assign(static_cast<size_t>(kBucketCount) * kBucketCap, 0);
-            ways_[way].l1_fps.assign(static_cast<size_t>(kBucketCount) * kBucketCap, 0);
+            ways_[way].l1_slots.assign(static_cast<size_t>(kBucketCount) * kBucketCap * kPackedSlotBytes, 0);
             ways_[way].l2_heads.assign(kBucketCount, kInvalidIndex);
-            ways_[way].l2_next.reserve(reserve_l2_each_way);
-            ways_[way].l2_ids.reserve(reserve_l2_each_way);
-            ways_[way].l2_fps.reserve(reserve_l2_each_way);
+            ways_[way].l2_pages.reserve(reserve_l2_each_way);
         }
     }
 
@@ -199,11 +237,11 @@ public:
             const size_t l1_size = storage.l1_sizes[meta.bin];
             bool l1_way_hit = false;
             for (size_t slot = 0; slot < l1_size; ++slot) {
-                const size_t idx = base + slot;
-                if (storage.l1_fps[idx] != meta.fp) {
+                const uint8_t *entry = &storage.l1_slots[base + slot * kPackedSlotBytes];
+                if (read_packed_fp(entry) != meta.fp) {
                     continue;
                 }
-                mark_candidate(storage.l1_ids[idx], static_cast<uint8_t>(1u << way), out, &max_hits);
+                mark_candidate(read_packed_id(entry), static_cast<uint8_t>(1u << way), out, &max_hits);
                 l1_way_hit = true;
             }
             if (l1_way_hit) {
@@ -216,12 +254,16 @@ public:
             }
             ++summary->l2_way_probes;
             bool l2_way_hit = false;
-            for (int32_t idx = head; idx != kInvalidIndex; idx = static_cast<int32_t>(storage.l2_next[idx])) {
-                if (storage.l2_fps[idx] != meta.fp) {
-                    continue;
+            for (int32_t page_idx = head; page_idx != kInvalidIndex; page_idx = storage.l2_pages[page_idx].next) {
+                const L2Page &page = storage.l2_pages[page_idx];
+                for (size_t slot = 0; slot < page.size; ++slot) {
+                    const uint8_t *entry = page_slot_ptr(&page, slot);
+                    if (read_packed_fp(entry) != meta.fp) {
+                        continue;
+                    }
+                    mark_candidate(read_packed_id(entry), static_cast<uint8_t>(1u << way), out, &max_hits);
+                    l2_way_hit = true;
                 }
-                mark_candidate(storage.l2_ids[idx], static_cast<uint8_t>(1u << way), out, &max_hits);
-                l2_way_hit = true;
             }
             if (l2_way_hit) {
                 ++summary->l2_way_hits;
@@ -241,25 +283,34 @@ public:
     }
 
     inline void insert_record(uint32_t id, const std::array<SegmentMeta, kWays> &metas) {
+        check_id_range(id);
         for (size_t way = 0; way < kWays; ++way) {
             const auto &meta = metas[way];
             auto &storage = ways_[way];
             const size_t base = bucket_offset(meta.bin);
             const size_t l1_size = storage.l1_sizes[meta.bin];
             if (l1_size < kBucketCap) {
-                const size_t idx = base + l1_size;
-                storage.l1_ids[idx] = id;
-                storage.l1_fps[idx] = meta.fp;
+                uint8_t *entry = &storage.l1_slots[base + l1_size * kPackedSlotBytes];
+                write_packed_slot(entry, id, meta.fp);
                 storage.l1_sizes[meta.bin] = static_cast<uint8_t>(l1_size + 1);
                 ++storage.l1_slots_used;
                 continue;
             }
 
-            const uint32_t new_idx = static_cast<uint32_t>(storage.l2_ids.size());
-            storage.l2_ids.push_back(id);
-            storage.l2_fps.push_back(meta.fp);
-            storage.l2_next.push_back(static_cast<uint32_t>(storage.l2_heads[meta.bin]));
-            storage.l2_heads[meta.bin] = static_cast<int32_t>(new_idx);
+            int32_t &head = storage.l2_heads[meta.bin];
+            int32_t target_page = head;
+            if (target_page == kInvalidIndex || storage.l2_pages[target_page].size >= kL2PageSlots) {
+                L2Page page{};
+                page.next = head;
+                storage.l2_pages.push_back(page);
+                head = static_cast<int32_t>(storage.l2_pages.size() - 1);
+                target_page = head;
+            }
+
+            L2Page &page = storage.l2_pages[target_page];
+            uint8_t *entry = page_slot_ptr(&page, page.size);
+            write_packed_slot(entry, id, meta.fp);
+            ++page.size;
             ++storage.l2_slots_used;
         }
     }
@@ -336,12 +387,9 @@ public:
         bytes += seen_masks_.capacity() * sizeof(uint8_t);
         for (const auto &way : ways_) {
             bytes += way.l1_sizes.capacity() * sizeof(uint8_t);
-            bytes += way.l1_ids.capacity() * sizeof(uint32_t);
-            bytes += way.l1_fps.capacity() * sizeof(uint16_t);
+            bytes += way.l1_slots.capacity() * sizeof(uint8_t);
             bytes += way.l2_heads.capacity() * sizeof(int32_t);
-            bytes += way.l2_next.capacity() * sizeof(uint32_t);
-            bytes += way.l2_ids.capacity() * sizeof(uint32_t);
-            bytes += way.l2_fps.capacity() * sizeof(uint16_t);
+            bytes += way.l2_pages.capacity() * sizeof(L2Page);
         }
         return bytes;
     }

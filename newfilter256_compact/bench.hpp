@@ -31,6 +31,7 @@ using Hash256 = newfilter256_compact::Hash256;
 constexpr size_t kDefaultN = 1000000;
 constexpr size_t kBenchPrecision = 20;
 constexpr size_t kRounds = 9;
+constexpr size_t kPackedIdLimit = 0xFFFFFF;
 constexpr const char *kFilterName = "NF256C-bin20-fp12-k16";
 
 constexpr const char *kPerfPath = "../scripts/Inputs/NewFilter256Compact";
@@ -243,6 +244,15 @@ inline void ensure_output_dirs() {
     std::filesystem::create_directories("../scripts/Inputs");
 }
 
+inline auto ensure_supported_n(size_t n_effective) -> bool {
+    if (n_effective <= kPackedIdLimit) {
+        return true;
+    }
+    std::cerr << "N exceeds phase-1 24-bit packed-id limit: " << n_effective
+              << " > " << kPackedIdLimit << std::endl;
+    return false;
+}
+
 template<typename Functor>
 inline auto time_ns(Functor &&fn) -> u64 {
     const auto start = std::chrono::steady_clock::now();
@@ -442,6 +452,9 @@ inline void run_perf_single_round(size_t n = effective_n(), size_t bench_precisi
         fill_vec_random(&add_vec, n);
     }
     const size_t n_effective = loaded ? add_vec.size() : n;
+    if (!ensure_supported_n(n_effective)) {
+        return;
+    }
     const size_t add_step = n_effective / bench_precision;
     if (add_step == 0) {
         std::cerr << "Not enough items for benchmark: n=" << n_effective << std::endl;
@@ -509,6 +522,9 @@ inline auto run_build_single(size_t n = effective_n()) -> u64 {
         fill_vec_random(&add_vec, n);
     }
     const size_t n_effective = loaded ? add_vec.size() : n;
+    if (!ensure_supported_n(n_effective)) {
+        return 0;
+    }
     Filter filter(n_effective, effective_threads());
     return time_ns([&] {
         for (const auto &item : add_vec) {
@@ -522,6 +538,9 @@ inline void run_build_suite(size_t rounds = kRounds, size_t n = effective_n()) {
     std::vector<Hash256> add_vec;
     const bool loaded = load_hashes_from_env(&add_vec);
     const size_t n_effective = loaded ? add_vec.size() : n;
+    if (!ensure_supported_n(n_effective)) {
+        return;
+    }
 
     file << std::endl;
     file << "n = " << n_effective << std::endl;
@@ -539,6 +558,9 @@ inline void run_fpp_single(size_t n = effective_n()) {
         fill_vec_random(&add_vec, n);
     }
     const size_t n_effective = loaded ? add_vec.size() : n;
+    if (!ensure_supported_n(n_effective)) {
+        return;
+    }
 
     std::vector<Hash256> find_vec;
     fill_vec_random(&find_vec, n_effective);
