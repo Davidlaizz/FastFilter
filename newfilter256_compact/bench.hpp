@@ -37,6 +37,7 @@ constexpr const char *kFilterName = "NF256C-bin20-fp12-k16";
 constexpr const char *kPerfPath = "../scripts/Inputs/NewFilter256Compact";
 constexpr const char *kHitRatePath = "../scripts/Inputs/NewFilter256Compact-hitrate";
 constexpr const char *kFillPath = "../scripts/Inputs/NewFilter256Compact-fill";
+constexpr const char *kConfusionPath = "../scripts/Inputs/NewFilter256Compact-confusion";
 constexpr const char *kBuildPath = "../scripts/build-newfilter256compact.csv";
 constexpr const char *kFppPath = "../scripts/fpp_table_newfilter256compact.csv";
 
@@ -107,6 +108,22 @@ struct FillRow {
     u64 verify_bits_b4 = 0;
 };
 
+struct ConfusionRow {
+    size_t total_queries = 0;
+    size_t positive_queries = 0;
+    size_t negative_queries = 0;
+    size_t tp = 0;
+    size_t fp = 0;
+    size_t tn = 0;
+    size_t fn = 0;
+    double accuracy = 0.0;
+    double precision = 0.0;
+    double recall = 0.0;
+    double f1 = 0.0;
+    double tpr = 0.0;
+    double fpr = 0.0;
+};
+
 inline volatile size_t g_lookup_sink = 0;
 
 inline auto rng() -> std::mt19937_64 & {
@@ -139,6 +156,26 @@ inline auto effective_threads() -> size_t {
 
 inline auto random_hash256() -> Hash256 {
     return Hash256{{rng()(), rng()(), rng()(), rng()()}};
+}
+
+inline auto flip_random_bits(const Hash256 &src, size_t flip_count) -> Hash256 {
+    Hash256 out = src;
+    if (flip_count == 0) {
+        return out;
+    }
+    std::array<uint16_t, 256> positions{};
+    for (size_t i = 0; i < positions.size(); ++i) {
+        positions[i] = static_cast<uint16_t>(i);
+    }
+    std::shuffle(positions.begin(), positions.end(), rng());
+    flip_count = std::min<size_t>(flip_count, positions.size());
+    for (size_t i = 0; i < flip_count; ++i) {
+        const size_t pos = positions[i];
+        const size_t word = pos / 64;
+        const size_t bit = pos % 64;
+        out.words[word] ^= (1ULL << bit);
+    }
+    return out;
 }
 
 inline void fill_vec_random(std::vector<Hash256> *vec, size_t count) {
@@ -307,6 +344,34 @@ inline auto timed_query_hits(Filter *filter, const std::vector<Hash256> &vec) ->
     return {elapsed, hits};
 }
 
+inline auto make_positive_queries(const std::vector<Hash256> &base, size_t count) -> std::vector<Hash256> {
+    std::vector<Hash256> out(count);
+    if (base.empty()) {
+        return out;
+    }
+    std::uniform_int_distribution<size_t> index_dist(0, base.size() - 1);
+    std::uniform_int_distribution<int> flip_dist(0, 3);
+    for (size_t i = 0; i < count; ++i) {
+        const auto &anchor = base[index_dist(rng())];
+        out[i] = flip_random_bits(anchor, static_cast<size_t>(flip_dist(rng())));
+    }
+    return out;
+}
+
+inline auto make_negative_queries(const std::vector<Hash256> &base, size_t count) -> std::vector<Hash256> {
+    std::vector<Hash256> out(count);
+    if (base.empty()) {
+        return out;
+    }
+    std::uniform_int_distribution<size_t> index_dist(0, base.size() - 1);
+    std::uniform_int_distribution<int> flip_dist(4, 8);
+    for (size_t i = 0; i < count; ++i) {
+        const auto &anchor = base[index_dist(rng())];
+        out[i] = flip_random_bits(anchor, static_cast<size_t>(flip_dist(rng())));
+    }
+    return out;
+}
+
 inline void append_perf_block(const Filter &filter, u64 init_time_ns, size_t filter_max_capacity,
                               size_t lookup_reps, const std::vector<PerfRow> &rows, const std::string &path) {
     std::fstream file(path, std::fstream::in | std::fstream::out | std::fstream::app);
@@ -388,6 +453,24 @@ inline void append_fill_block(size_t filter_max_capacity, size_t bench_precision
     file << "END_OF_FILE!" << std::endl;
 }
 
+inline void append_confusion_block(size_t filter_max_capacity, const ConfusionRow &row, const std::string &path) {
+    std::fstream file(path, std::fstream::in | std::fstream::out | std::fstream::app);
+    file << std::endl;
+    file << "# This is a comment." << std::endl;
+    file << "NAME\t" << kFilterName << std::endl;
+    file << "FILTER_MAX_CAPACITY\t" << filter_max_capacity << std::endl;
+    file << std::endl;
+    file << "CONFUSION_START" << std::endl;
+    file << "# total, positive, negative, tp, fp, tn, fn, accuracy, precision, recall, f1, tpr, fpr" << std::endl;
+    file << std::fixed << std::setprecision(8);
+    file << row.total_queries << ", " << row.positive_queries << ", " << row.negative_queries << ", "
+         << row.tp << ", " << row.fp << ", " << row.tn << ", " << row.fn << ", "
+         << row.accuracy << ", " << row.precision << ", " << row.recall << ", " << row.f1 << ", "
+         << row.tpr << ", " << row.fpr << std::endl;
+    file << "CONFUSION_END" << std::endl;
+    file << "END_OF_FILE!" << std::endl;
+}
+
 inline auto capture_fill_row(const Filter &filter) -> FillRow {
     FillRow row{};
     row.add_attempts = filter.get_add_attempts();
@@ -460,8 +543,9 @@ inline void run_perf_single_round(size_t n = effective_n(), size_t bench_precisi
         std::cerr << "Not enough items for benchmark: n=" << n_effective << std::endl;
         return;
     }
-    const size_t find_step = add_step;
-    const size_t true_find_step = add_step;
+    const size_t final_query_total = add_step;
+    const size_t final_positive_queries = (final_query_total * 3) / 10;
+    const size_t final_negative_queries = final_query_total - final_positive_queries;
 
     const auto init_start = std::chrono::high_resolution_clock::now();
     Filter filter(n_effective, effective_threads());
@@ -471,6 +555,7 @@ inline void run_perf_single_round(size_t n = effective_n(), size_t bench_precisi
     std::vector<PerfRow> perf_rows(bench_precision);
     std::vector<HitRateRow> hit_rows(bench_precision);
     std::vector<FillRow> fill_rows(bench_precision);
+    ConfusionRow confusion{};
 
     for (size_t round = 0; round < bench_precision; ++round) {
         const size_t add_start = round * add_step;
@@ -481,38 +566,73 @@ inline void run_perf_single_round(size_t n = effective_n(), size_t bench_precisi
                 filter.Add(add_vec[i]);
             }
         });
-
-        const bool has_negative = (round + 1) < bench_precision;
-        std::pair<u64, size_t> neg_lookup{0, 0};
-        if (has_negative) {
-            const size_t neg_start = add_end;
-            const size_t neg_end = std::min(add_vec.size(), neg_start + find_step);
-            neg_lookup = timed_query_hits_on_range(&filter, add_vec, neg_start, neg_end);
-            perf_rows[round].uniform_lookup_ns = neg_lookup.first;
-        } else {
-            perf_rows[round].uniform_lookup_ns = 0;
-        }
-
-        const auto positive_sample = make_positive_sample(add_vec, add_end, true_find_step);
-        const auto pos_lookup = timed_query_hits(&filter, positive_sample);
-        perf_rows[round].yes_lookup_ns = pos_lookup.first;
+        perf_rows[round].uniform_lookup_ns = 0;
+        perf_rows[round].yes_lookup_ns = 0;
         perf_rows[round].deletions_ns = 0;
-
-        hit_rows[round].negative_hits = neg_lookup.second;
-        hit_rows[round].positive_hits = pos_lookup.second;
-        hit_rows[round].negative_queries = has_negative ? find_step : 0;
-        hit_rows[round].positive_queries = true_find_step;
-        hit_rows[round].negative_hit_rate = has_negative
-                                                ? static_cast<double>(neg_lookup.second) / static_cast<double>(find_step)
-                                                : std::numeric_limits<double>::quiet_NaN();
-        hit_rows[round].positive_hit_rate = static_cast<double>(pos_lookup.second) / static_cast<double>(true_find_step);
+        hit_rows[round].negative_hits = 0;
+        hit_rows[round].positive_hits = 0;
+        hit_rows[round].negative_queries = 0;
+        hit_rows[round].positive_queries = 0;
+        hit_rows[round].negative_hit_rate = std::numeric_limits<double>::quiet_NaN();
+        hit_rows[round].positive_hit_rate = std::numeric_limits<double>::quiet_NaN();
 
         fill_rows[round] = capture_fill_row(filter);
+
+        if (round + 1 != bench_precision) {
+            continue;
+        }
+
+        const auto positive_queries = make_positive_queries(add_vec, final_positive_queries);
+        const auto negative_queries = make_negative_queries(add_vec, final_negative_queries);
+        const auto neg_lookup = timed_query_hits(&filter, negative_queries);
+        const auto pos_lookup = timed_query_hits(&filter, positive_queries);
+
+        perf_rows[round].uniform_lookup_ns = neg_lookup.first;
+        perf_rows[round].yes_lookup_ns = pos_lookup.first;
+
+        const size_t tp = pos_lookup.second;
+        const size_t fn = final_positive_queries - tp;
+        const size_t fp = neg_lookup.second;
+        const size_t tn = final_negative_queries - fp;
+        const size_t total = final_positive_queries + final_negative_queries;
+
+        const double accuracy = (total == 0) ? 0.0 : static_cast<double>(tp + tn) / static_cast<double>(total);
+        const double precision = ((tp + fp) == 0) ? 0.0 : static_cast<double>(tp) / static_cast<double>(tp + fp);
+        const double recall = (final_positive_queries == 0)
+                                  ? 0.0
+                                  : static_cast<double>(tp) / static_cast<double>(final_positive_queries);
+        const double f1 = ((precision + recall) == 0.0) ? 0.0 : (2.0 * precision * recall) / (precision + recall);
+        const double tpr = recall;
+        const double fpr = (final_negative_queries == 0)
+                               ? 0.0
+                               : static_cast<double>(fp) / static_cast<double>(final_negative_queries);
+
+        hit_rows[round].negative_hits = fp;
+        hit_rows[round].positive_hits = tp;
+        hit_rows[round].negative_queries = final_negative_queries;
+        hit_rows[round].positive_queries = final_positive_queries;
+        hit_rows[round].negative_hit_rate = fpr;
+        hit_rows[round].positive_hit_rate = tpr;
+
+        confusion.total_queries = total;
+        confusion.positive_queries = final_positive_queries;
+        confusion.negative_queries = final_negative_queries;
+        confusion.tp = tp;
+        confusion.fp = fp;
+        confusion.tn = tn;
+        confusion.fn = fn;
+        confusion.accuracy = accuracy;
+        confusion.precision = precision;
+        confusion.recall = recall;
+        confusion.f1 = f1;
+        confusion.tpr = tpr;
+        confusion.fpr = fpr;
     }
 
     append_perf_block(filter, init_time, n_effective, n_effective, perf_rows, kPerfPath);
-    append_hitrate_block(n_effective, find_step, true_find_step, hit_rows, kHitRatePath);
+    append_hitrate_block(n_effective, final_negative_queries, final_positive_queries, hit_rows, kHitRatePath);
     append_fill_block(n_effective, bench_precision, fill_rows, kFillPath);
+    append_confusion_block(n_effective, confusion, kConfusionPath);
 }
 
 inline auto run_build_single(size_t n = effective_n()) -> u64 {

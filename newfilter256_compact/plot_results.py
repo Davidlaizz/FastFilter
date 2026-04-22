@@ -22,7 +22,7 @@ def parse_blocks(path: Path, start_tag: str, end_tag: str):
             rows = []
             while i < len(lines) and lines[i].strip() != end_tag:
                 line = lines[i].strip()
-                if line:
+                if line and not line.startswith("#"):
                     rows.append([part.strip() for part in line.split(",")])
                 i += 1
             if rows:
@@ -77,9 +77,14 @@ def draw_throughput(perf_blocks, n, out_path: Path):
     fig, axes = plt.subplots(1, 3, figsize=(14, 4), sharex=True)
     axes[0].plot(load, add_ops, marker="o", linewidth=1.8, markersize=3)
     axes[0].set_title("(a) Insertions")
-    axes[1].plot(load[:-1], neg_ops[:-1], marker="o", linewidth=1.8, markersize=3)
+    neg_points = [(x, y) for x, y in zip(load, neg_ops) if y > 0]
+    pos_points = [(x, y) for x, y in zip(load, pos_ops) if y > 0]
+
+    if neg_points:
+        axes[1].plot([x for x, _ in neg_points], [y for _, y in neg_points], marker="o", linewidth=1.8, markersize=3)
     axes[1].set_title("(b) Uniform lookups")
-    axes[2].plot(load, pos_ops, marker="o", linewidth=1.8, markersize=3)
+    if pos_points:
+        axes[2].plot([x for x, _ in pos_points], [y for _, y in pos_points], marker="o", linewidth=1.8, markersize=3)
     axes[2].set_title("(c) Yes lookups")
     for ax in axes:
         ax.set_xlabel("Load")
@@ -97,14 +102,69 @@ def draw_hitrate(hitrate_blocks, out_path: Path):
     pos_hit = median_series(hitrate_blocks, 1, default=math.nan)
 
     fig, ax = plt.subplots(figsize=(8.5, 4.2))
-    ax.plot(load[:-1], neg_hit[:-1], marker="o", linewidth=1.8, markersize=3, label="Negative query hit rate")
-    ax.plot(load, pos_hit, marker="s", linewidth=1.8, markersize=3, label="Positive query hit rate")
+    neg_points = [(x, y) for x, y in zip(load, neg_hit) if not math.isnan(y)]
+    pos_points = [(x, y) for x, y in zip(load, pos_hit) if not math.isnan(y)]
+
+    if neg_points:
+        ax.plot([x for x, _ in neg_points], [y for _, y in neg_points], marker="o", linewidth=1.8, markersize=3,
+                label="Negative query hit rate")
+    if pos_points:
+        ax.plot([x for x, _ in pos_points], [y for _, y in pos_points], marker="s", linewidth=1.8, markersize=3,
+                label="Positive query hit rate")
     ax.set_title("Query Hit Rates vs Load (newfilter256_compact)")
     ax.set_xlabel("Load")
     ax.set_ylabel("Hit rate")
     ax.set_ylim(0.0, 1.05)
     ax.grid(alpha=0.35)
     ax.legend(loc="best")
+    fig.tight_layout()
+    fig.savefig(out_path, format="pdf", bbox_inches="tight")
+    plt.close(fig)
+
+
+def draw_confusion(confusion_blocks, out_path: Path):
+    totals = [float(block[0][0]) for block in confusion_blocks]
+    pos = [float(block[0][1]) for block in confusion_blocks]
+    neg = [float(block[0][2]) for block in confusion_blocks]
+    tp = [float(block[0][3]) for block in confusion_blocks]
+    fp = [float(block[0][4]) for block in confusion_blocks]
+    tn = [float(block[0][5]) for block in confusion_blocks]
+    fn = [float(block[0][6]) for block in confusion_blocks]
+    acc = [float(block[0][7]) for block in confusion_blocks]
+    prec = [float(block[0][8]) for block in confusion_blocks]
+    rec = [float(block[0][9]) for block in confusion_blocks]
+    f1 = [float(block[0][10]) for block in confusion_blocks]
+    tpr = [float(block[0][11]) for block in confusion_blocks]
+    fpr = [float(block[0][12]) for block in confusion_blocks]
+
+    vals = {
+        "TP": statistics.median(tp),
+        "FP": statistics.median(fp),
+        "TN": statistics.median(tn),
+        "FN": statistics.median(fn),
+    }
+    rate_vals = {
+        "Accuracy": statistics.median(acc),
+        "Precision": statistics.median(prec),
+        "Recall(TPR)": statistics.median(rec if rec else tpr),
+        "F1": statistics.median(f1),
+        "FPR": statistics.median(fpr),
+    }
+
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4.2))
+    axes[0].bar(list(vals.keys()), list(vals.values()), color=["#2ca02c", "#d62728", "#1f77b4", "#ff7f0e"])
+    axes[0].set_title("Confusion Matrix Counts (median)")
+    axes[0].set_ylabel("Count")
+    axes[0].grid(axis="y", alpha=0.35)
+    summary = f"Q={int(statistics.median(totals))}, pos={int(statistics.median(pos))}, neg={int(statistics.median(neg))}"
+    axes[0].text(0.0, 1.02, summary, transform=axes[0].transAxes, fontsize=9)
+
+    axes[1].bar(list(rate_vals.keys()), list(rate_vals.values()), color="#9467bd")
+    axes[1].set_title("Confusion Metrics (median)")
+    axes[1].set_ylim(0.0, 1.05)
+    axes[1].set_ylabel("Ratio")
+    axes[1].grid(axis="y", alpha=0.35)
+
     fig.tight_layout()
     fig.savefig(out_path, format="pdf", bbox_inches="tight")
     plt.close(fig)
@@ -241,12 +301,14 @@ def main():
     parser.add_argument("--perf", default="../scripts/Inputs/NewFilter256Compact")
     parser.add_argument("--hitrate", default="../scripts/Inputs/NewFilter256Compact-hitrate")
     parser.add_argument("--fill", default="../scripts/Inputs/NewFilter256Compact-fill")
+    parser.add_argument("--confusion", default="../scripts/Inputs/NewFilter256Compact-confusion")
     parser.add_argument("--outdir", default="../scripts")
     args = parser.parse_args()
 
     perf_path = Path(args.perf)
     hitrate_path = Path(args.hitrate)
     fill_path = Path(args.fill)
+    confusion_path = Path(args.confusion)
     outdir = Path(args.outdir)
     outdir.mkdir(parents=True, exist_ok=True)
 
@@ -261,6 +323,9 @@ def main():
     fill_blocks = parse_blocks(fill_path, "FILL_START", "FILL_END")
     if not fill_blocks:
         raise RuntimeError(f"No FILL blocks found in {fill_path}")
+    confusion_blocks = parse_blocks(confusion_path, "CONFUSION_START", "CONFUSION_END")
+    if not confusion_blocks:
+        raise RuntimeError(f"No CONFUSION blocks found in {confusion_path}")
 
     n = extract_n_from_perf(perf_path)
 
@@ -269,18 +334,21 @@ def main():
     items = outdir / "newfilter256compact-items.pdf"
     filter_branches = outdir / "newfilter256compact-filter-branches.pdf"
     verify_branches = outdir / "newfilter256compact-verify-branches.pdf"
+    confusion = outdir / "newfilter256compact-confusion.pdf"
 
     draw_throughput(perf_blocks, n, throughput)
     draw_hitrate(hitrate_blocks, hitrate)
     draw_items(fill_blocks, items)
     draw_filter_branches(fill_blocks, filter_branches)
     draw_verify_branches(fill_blocks, verify_branches)
+    draw_confusion(confusion_blocks, confusion)
 
     print(f"Saved: {throughput}")
     print(f"Saved: {hitrate}")
     print(f"Saved: {items}")
     print(f"Saved: {filter_branches}")
     print(f"Saved: {verify_branches}")
+    print(f"Saved: {confusion}")
 
 
 if __name__ == "__main__":

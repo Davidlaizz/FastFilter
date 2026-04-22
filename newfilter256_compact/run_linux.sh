@@ -16,6 +16,7 @@ mkdir -p "${ROOT_DIR}/scripts/Inputs"
 rm -f "${ROOT_DIR}/scripts/Inputs/NewFilter256Compact" \
       "${ROOT_DIR}/scripts/Inputs/NewFilter256Compact-hitrate" \
       "${ROOT_DIR}/scripts/Inputs/NewFilter256Compact-fill" \
+      "${ROOT_DIR}/scripts/Inputs/NewFilter256Compact-confusion" \
       "${ROOT_DIR}/scripts/build-newfilter256compact.csv" \
       "${ROOT_DIR}/scripts/fpp_table_newfilter256compact.csv"
 
@@ -31,6 +32,7 @@ echo "Data:"
 echo "  ${ROOT_DIR}/scripts/Inputs/NewFilter256Compact"
 echo "  ${ROOT_DIR}/scripts/Inputs/NewFilter256Compact-hitrate"
 echo "  ${ROOT_DIR}/scripts/Inputs/NewFilter256Compact-fill"
+echo "  ${ROOT_DIR}/scripts/Inputs/NewFilter256Compact-confusion"
 echo "  ${ROOT_DIR}/scripts/build-newfilter256compact.csv"
 echo "  ${ROOT_DIR}/scripts/fpp_table_newfilter256compact.csv"
 echo "Plots:"
@@ -39,3 +41,4 @@ echo "  ${ROOT_DIR}/scripts/newfilter256compact-hitrate.pdf"
 echo "  ${ROOT_DIR}/scripts/newfilter256compact-items.pdf"
 echo "  ${ROOT_DIR}/scripts/newfilter256compact-filter-branches.pdf"
 echo "  ${ROOT_DIR}/scripts/newfilter256compact-verify-branches.pdf"
+echo "  ${ROOT_DIR}/scripts/newfilter256compact-confusion.pdf"
