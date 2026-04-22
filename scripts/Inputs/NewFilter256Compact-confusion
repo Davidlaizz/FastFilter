@@ -1,0 +1,90 @@
+
+# This is a comment.
+NAME	NF256C-bin20-fp12-k16
+FILTER_MAX_CAPACITY	10000000
+
+CONFUSION_START
+# total, positive, negative, tp, fp, tn, fn, accuracy, precision, recall, f1, tpr, fpr
+500000, 150000, 350000, 150000, 0, 350000, 0, 1.00000000, 1.00000000, 1.00000000, 1.00000000, 1.00000000, 0.00000000
+CONFUSION_END
+END_OF_FILE!
+
+# This is a comment.
+NAME	NF256C-bin20-fp12-k16
+FILTER_MAX_CAPACITY	10000000
+
+CONFUSION_START
+# total, positive, negative, tp, fp, tn, fn, accuracy, precision, recall, f1, tpr, fpr
+500000, 150000, 350000, 150000, 0, 350000, 0, 1.00000000, 1.00000000, 1.00000000, 1.00000000, 1.00000000, 0.00000000
+CONFUSION_END
+END_OF_FILE!
+
+# This is a comment.
+NAME	NF256C-bin20-fp12-k16
+FILTER_MAX_CAPACITY	10000000
+
+CONFUSION_START
+# total, positive, negative, tp, fp, tn, fn, accuracy, precision, recall, f1, tpr, fpr
+500000, 150000, 350000, 150000, 0, 350000, 0, 1.00000000, 1.00000000, 1.00000000, 1.00000000, 1.00000000, 0.00000000
+CONFUSION_END
+END_OF_FILE!
+
+# This is a comment.
+NAME	NF256C-bin20-fp12-k16
+FILTER_MAX_CAPACITY	10000000
+
+CONFUSION_START
+# total, positive, negative, tp, fp, tn, fn, accuracy, precision, recall, f1, tpr, fpr
+500000, 150000, 350000, 150000, 0, 350000, 0, 1.00000000, 1.00000000, 1.00000000, 1.00000000, 1.00000000, 0.00000000
+CONFUSION_END
+END_OF_FILE!
+
+# This is a comment.
+NAME	NF256C-bin20-fp12-k16
+FILTER_MAX_CAPACITY	10000000
+
+CONFUSION_START
+# total, positive, negative, tp, fp, tn, fn, accuracy, precision, recall, f1, tpr, fpr
+500000, 150000, 350000, 150000, 0, 350000, 0, 1.00000000, 1.00000000, 1.00000000, 1.00000000, 1.00000000, 0.00000000
+CONFUSION_END
+END_OF_FILE!
+
+# This is a comment.
+NAME	NF256C-bin20-fp12-k16
+FILTER_MAX_CAPACITY	10000000
+
+CONFUSION_START
+# total, positive, negative, tp, fp, tn, fn, accuracy, precision, recall, f1, tpr, fpr
+500000, 150000, 350000, 150000, 0, 350000, 0, 1.00000000, 1.00000000, 1.00000000, 1.00000000, 1.00000000, 0.00000000
+CONFUSION_END
+END_OF_FILE!
+
+# This is a comment.
+NAME	NF256C-bin20-fp12-k16
+FILTER_MAX_CAPACITY	10000000
+
+CONFUSION_START
+# total, positive, negative, tp, fp, tn, fn, accuracy, precision, recall, f1, tpr, fpr
+500000, 150000, 350000, 150000, 0, 350000, 0, 1.00000000, 1.00000000, 1.00000000, 1.00000000, 1.00000000, 0.00000000
+CONFUSION_END
+END_OF_FILE!
+
+# This is a comment.
+NAME	NF256C-bin20-fp12-k16
+FILTER_MAX_CAPACITY	10000000
+
+CONFUSION_START
+# total, positive, negative, tp, fp, tn, fn, accuracy, precision, recall, f1, tpr, fpr
+500000, 150000, 350000, 150000, 0, 350000, 0, 1.00000000, 1.00000000, 1.00000000, 1.00000000, 1.00000000, 0.00000000
+CONFUSION_END
+END_OF_FILE!
+
+# This is a comment.
+NAME	NF256C-bin20-fp12-k16
+FILTER_MAX_CAPACITY	10000000
+
+CONFUSION_START
+# total, positive, negative, tp, fp, tn, fn, accuracy, precision, recall, f1, tpr, fpr
+500000, 150000, 350000, 150000, 0, 350000, 0, 1.00000000, 1.00000000, 1.00000000, 1.00000000, 1.00000000, 0.00000000
+CONFUSION_END
+END_OF_FILE!
