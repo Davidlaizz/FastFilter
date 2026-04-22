@@ -31,6 +31,7 @@ using Hash256 = newfilter256_compact::Hash256;
 constexpr size_t kDefaultN = 1000000;
 constexpr size_t kBenchPrecision = 20;
 constexpr size_t kRounds = 9;
+constexpr size_t kFinalQueryBatches = 10;
 constexpr size_t kPackedIdLimit = 0xFFFFFF;
 constexpr const char *kFilterName = "NF256C-bin20-fp12-k16";
 
@@ -584,15 +585,39 @@ inline void run_perf_single_round(size_t n = effective_n(), size_t bench_precisi
 
         const auto positive_queries = make_positive_queries(add_vec, final_positive_queries);
         const auto negative_queries = make_negative_queries(add_vec, final_negative_queries);
-        const auto neg_lookup = timed_query_hits(&filter, negative_queries);
-        const auto pos_lookup = timed_query_hits(&filter, positive_queries);
 
-        perf_rows[round].uniform_lookup_ns = neg_lookup.first;
-        perf_rows[round].yes_lookup_ns = pos_lookup.first;
+        u64 total_neg_ns = 0;
+        u64 total_pos_ns = 0;
+        size_t total_neg_hits = 0;
+        size_t total_pos_hits = 0;
 
-        const size_t tp = pos_lookup.second;
+        for (size_t batch = 0; batch < kFinalQueryBatches; ++batch) {
+            const size_t pos_start = (final_positive_queries * batch) / kFinalQueryBatches;
+            const size_t pos_end = (final_positive_queries * (batch + 1)) / kFinalQueryBatches;
+            const size_t neg_start = (final_negative_queries * batch) / kFinalQueryBatches;
+            const size_t neg_end = (final_negative_queries * (batch + 1)) / kFinalQueryBatches;
+            const size_t pos_batch_size = pos_end - pos_start;
+            const size_t neg_batch_size = neg_end - neg_start;
+
+            if (neg_batch_size > 0) {
+                const auto neg_batch = timed_query_hits_on_range(&filter, negative_queries, neg_start, neg_end);
+                total_neg_ns += neg_batch.first;
+                total_neg_hits += neg_batch.second;
+            }
+
+            if (pos_batch_size > 0) {
+                const auto pos_batch = timed_query_hits_on_range(&filter, positive_queries, pos_start, pos_end);
+                total_pos_ns += pos_batch.first;
+                total_pos_hits += pos_batch.second;
+            }
+        }
+
+        perf_rows[round].uniform_lookup_ns = total_neg_ns;
+        perf_rows[round].yes_lookup_ns = total_pos_ns;
+
+        const size_t tp = total_pos_hits;
         const size_t fn = final_positive_queries - tp;
-        const size_t fp = neg_lookup.second;
+        const size_t fp = total_neg_hits;
         const size_t tn = final_negative_queries - fp;
         const size_t total = final_positive_queries + final_negative_queries;
 
