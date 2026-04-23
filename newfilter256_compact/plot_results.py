@@ -296,6 +296,30 @@ def draw_verify_branches(fill_blocks, out_path: Path):
     plt.close(fig)
 
 
+def draw_insert_outcomes(fill_blocks, out_path: Path):
+    rounds = len(fill_blocks[0])
+    load = [(i + 1) / rounds for i in range(rounds)]
+
+    add_attempts = median_series(fill_blocks, 0)
+    insert_success = median_series(fill_blocks, 43)
+    reject_dup = median_series(fill_blocks, 44)
+    reject_cap = median_series(fill_blocks, 45)
+
+    fig, ax = plt.subplots(figsize=(9.5, 4.2))
+    ax.plot(load, add_attempts, marker="o", linewidth=1.7, markersize=3, label="Add attempts (cumulative)")
+    ax.plot(load, insert_success, marker="s", linewidth=1.7, markersize=3, label="Inserted (cumulative)")
+    ax.plot(load, reject_dup, marker="^", linewidth=1.7, markersize=3, label="Rejected by duplicate")
+    ax.plot(load, reject_cap, marker="x", linewidth=1.7, markersize=3, label="Rejected by capacity")
+    ax.set_title("Insert Outcomes vs Load")
+    ax.set_xlabel("Load")
+    ax.set_ylabel("Count")
+    ax.grid(alpha=0.35)
+    ax.legend(loc="best")
+    fig.tight_layout()
+    fig.savefig(out_path, format="pdf", bbox_inches="tight")
+    plt.close(fig)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--perf", default="../scripts/Inputs/NewFilter256Compact")
@@ -335,6 +359,7 @@ def main():
     filter_branches = outdir / "newfilter256compact-filter-branches.pdf"
     verify_branches = outdir / "newfilter256compact-verify-branches.pdf"
     confusion = outdir / "newfilter256compact-confusion.pdf"
+    outcomes = outdir / "newfilter256compact-insert-outcomes.pdf"
 
     draw_throughput(perf_blocks, n, throughput)
     draw_hitrate(hitrate_blocks, hitrate)
@@ -342,6 +367,7 @@ def main():
     draw_filter_branches(fill_blocks, filter_branches)
     draw_verify_branches(fill_blocks, verify_branches)
     draw_confusion(confusion_blocks, confusion)
+    draw_insert_outcomes(fill_blocks, outcomes)
 
     print(f"Saved: {throughput}")
     print(f"Saved: {hitrate}")
@@ -349,6 +375,7 @@ def main():
     print(f"Saved: {filter_branches}")
     print(f"Saved: {verify_branches}")
     print(f"Saved: {confusion}")
+    print(f"Saved: {outcomes}")
 
 
 if __name__ == "__main__":

@@ -32,7 +32,6 @@ constexpr size_t kDefaultN = 1000000;
 constexpr size_t kBenchPrecision = 20;
 constexpr size_t kRounds = 9;
 constexpr size_t kFinalQueryBatches = 10;
-constexpr size_t kPackedIdLimit = 0xFFFFFF;
 constexpr const char *kFilterName = "NF256C-bin20-fp12-k16";
 
 constexpr const char *kPerfPath = "../scripts/Inputs/NewFilter256Compact";
@@ -107,6 +106,10 @@ struct FillRow {
     u64 verify_bits_b2 = 0;
     u64 verify_bits_b3 = 0;
     u64 verify_bits_b4 = 0;
+    size_t insert_success_total = 0;
+    size_t reject_duplicate_total = 0;
+    size_t reject_capacity_total = 0;
+    size_t reject_total = 0;
 };
 
 struct ConfusionRow {
@@ -282,15 +285,6 @@ inline void ensure_output_dirs() {
     std::filesystem::create_directories("../scripts/Inputs");
 }
 
-inline auto ensure_supported_n(size_t n_effective) -> bool {
-    if (n_effective <= kPackedIdLimit) {
-        return true;
-    }
-    std::cerr << "N exceeds phase-1 24-bit packed-id limit: " << n_effective
-              << " > " << kPackedIdLimit << std::endl;
-    return false;
-}
-
 template<typename Functor>
 inline auto time_ns(Functor &&fn) -> u64 {
     const auto start = std::chrono::steady_clock::now();
@@ -430,7 +424,8 @@ inline void append_fill_block(size_t filter_max_capacity, size_t bench_precision
             " insert_zero, insert_after1, insert_after2, insert_after3, insert_after_filter_collision,"
             " dup1, dup2, dup3, dup4, collect_calls, collect_zero_hits, avg_candidates,"
             " filter_hit0, filter_hit1, filter_hit2, filter_hit3, filter_hit4, l1_way_hit_ratio, l2_way_hit_ratio,"
-            " verify_calls, verify_candidates_b1..b4, verify_checked_b1..b4, verify_dup_b1..b4, verify_bits_b1..b4." << std::endl;
+            " verify_calls, verify_candidates_b1..b4, verify_checked_b1..b4, verify_dup_b1..b4, verify_bits_b1..b4,"
+            " insert_success_total, reject_duplicate_total, reject_capacity_total, reject_total." << std::endl;
     file << std::endl;
     file << "FILL_START" << std::endl;
     file << std::fixed << std::setprecision(8);
@@ -447,7 +442,9 @@ inline void append_fill_block(size_t filter_max_capacity, size_t bench_precision
              << row.verify_candidates_b1 << ", " << row.verify_candidates_b2 << ", " << row.verify_candidates_b3 << ", " << row.verify_candidates_b4 << ", "
              << row.verify_checked_b1 << ", " << row.verify_checked_b2 << ", " << row.verify_checked_b3 << ", " << row.verify_checked_b4 << ", "
              << row.verify_dup_b1 << ", " << row.verify_dup_b2 << ", " << row.verify_dup_b3 << ", " << row.verify_dup_b4 << ", "
-             << row.verify_bits_b1 << ", " << row.verify_bits_b2 << ", " << row.verify_bits_b3 << ", " << row.verify_bits_b4 << std::endl;
+             << row.verify_bits_b1 << ", " << row.verify_bits_b2 << ", " << row.verify_bits_b3 << ", " << row.verify_bits_b4 << ", "
+             << row.insert_success_total << ", " << row.reject_duplicate_total << ", "
+             << row.reject_capacity_total << ", " << row.reject_total << std::endl;
     }
     file << std::endl;
     file << "FILL_END" << std::endl;
@@ -525,6 +522,10 @@ inline auto capture_fill_row(const Filter &filter) -> FillRow {
     row.verify_bits_b2 = filter.get_verify_branch_compared_bits(2);
     row.verify_bits_b3 = filter.get_verify_branch_compared_bits(3);
     row.verify_bits_b4 = filter.get_verify_branch_compared_bits(4);
+    row.insert_success_total = filter.get_insert_success_total();
+    row.reject_duplicate_total = filter.get_reject_duplicate_total();
+    row.reject_capacity_total = filter.get_reject_capacity_total();
+    row.reject_total = row.reject_duplicate_total + row.reject_capacity_total;
     return row;
 }
 
@@ -536,9 +537,6 @@ inline void run_perf_single_round(size_t n = effective_n(), size_t bench_precisi
         fill_vec_random(&add_vec, n);
     }
     const size_t n_effective = loaded ? add_vec.size() : n;
-    if (!ensure_supported_n(n_effective)) {
-        return;
-    }
     const size_t add_step = n_effective / bench_precision;
     if (add_step == 0) {
         std::cerr << "Not enough items for benchmark: n=" << n_effective << std::endl;
@@ -667,9 +665,6 @@ inline auto run_build_single(size_t n = effective_n()) -> u64 {
         fill_vec_random(&add_vec, n);
     }
     const size_t n_effective = loaded ? add_vec.size() : n;
-    if (!ensure_supported_n(n_effective)) {
-        return 0;
-    }
     Filter filter(n_effective, effective_threads());
     return time_ns([&] {
         for (const auto &item : add_vec) {
@@ -683,9 +678,6 @@ inline void run_build_suite(size_t rounds = kRounds, size_t n = effective_n()) {
     std::vector<Hash256> add_vec;
     const bool loaded = load_hashes_from_env(&add_vec);
     const size_t n_effective = loaded ? add_vec.size() : n;
-    if (!ensure_supported_n(n_effective)) {
-        return;
-    }
 
     file << std::endl;
     file << "n = " << n_effective << std::endl;
@@ -703,9 +695,6 @@ inline void run_fpp_single(size_t n = effective_n()) {
         fill_vec_random(&add_vec, n);
     }
     const size_t n_effective = loaded ? add_vec.size() : n;
-    if (!ensure_supported_n(n_effective)) {
-        return;
-    }
 
     std::vector<Hash256> find_vec;
     fill_vec_random(&find_vec, n_effective);

@@ -14,11 +14,15 @@ namespace newfilter256_compact {
 
 class NewFilter256Compact {
 private:
+    static constexpr size_t kMaxInsertedRecords = 0x1000000ULL; // 24-bit id capacity
+
     CompactFilterLayer filter_;
     CompactVerifyLayer verifier_;
 
     size_t add_attempts_ = 0;
     size_t logical_items_ = 0;
+    size_t reject_duplicate_total_ = 0;
+    size_t reject_capacity_total_ = 0;
 
     size_t insert_zero_segment_ = 0;
     size_t insert_after_match1_ = 0;
@@ -55,6 +59,7 @@ public:
             is_dup = verifier_.verify_duplicate(item, candidates, &decision);
         }
         if (is_dup) {
+            ++reject_duplicate_total_;
             switch (decision.duplicate_exact_match) {
                 case 1: ++dup_match1_; break;
                 case 2: ++dup_match2_; break;
@@ -62,6 +67,11 @@ public:
                 case 4: ++dup_match4_; break;
                 default: break;
             }
+            return false;
+        }
+
+        if (verifier_.size() >= kMaxInsertedRecords) {
+            ++reject_capacity_total_;
             return false;
         }
 
@@ -104,6 +114,18 @@ public:
 
     auto get_add_attempts() const -> size_t {
         return add_attempts_;
+    }
+
+    auto get_insert_success_total() const -> size_t {
+        return logical_items_;
+    }
+
+    auto get_reject_duplicate_total() const -> size_t {
+        return reject_duplicate_total_;
+    }
+
+    auto get_reject_capacity_total() const -> size_t {
+        return reject_capacity_total_;
     }
 
     auto get_logical_items() const -> size_t {
