@@ -12,6 +12,11 @@
 
 namespace newfilter256_compact {
 
+struct QueryEval {
+    bool is_duplicate = false;
+    uint8_t max_exact_match = 0;
+};
+
 class NewFilter256Compact {
 private:
     static constexpr size_t kMaxInsertedRecords = 0x1000000ULL; // 24-bit id capacity
@@ -96,16 +101,21 @@ public:
     }
 
     inline auto Find(const Hash256 &item) -> bool {
+        return Evaluate(item).is_duplicate;
+    }
+
+    inline auto Evaluate(const Hash256 &item) -> QueryEval {
         const auto metas = CompactFilterLayer::build_metas(item);
         std::vector<CandidateEntry> candidates;
         FilterCollectSummary collect_summary{};
         filter_.collect_candidates(metas, verifier_.size(), &candidates, &collect_summary);
 
         if (candidates.empty()) {
-            return false;
+            return QueryEval{false, 0};
         }
         VerifyDecision decision{};
-        return verifier_.verify_duplicate(item, candidates, &decision);
+        const bool is_dup = verifier_.verify_duplicate(item, candidates, &decision);
+        return QueryEval{is_dup, decision.max_exact_match};
     }
 
     auto get_name() const -> std::string {

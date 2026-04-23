@@ -126,6 +126,8 @@ struct ConfusionRow {
     double f1 = 0.0;
     double tpr = 0.0;
     double fpr = 0.0;
+    std::array<size_t, 5> positive_max_match_hist{{0, 0, 0, 0, 0}};
+    std::array<size_t, 5> negative_max_match_hist{{0, 0, 0, 0, 0}};
 };
 
 inline volatile size_t g_lookup_sink = 0;
@@ -339,6 +341,21 @@ inline auto timed_query_hits(Filter *filter, const std::vector<Hash256> &vec) ->
     return {elapsed, hits};
 }
 
+inline auto timed_query_eval_on_range(Filter *filter, const std::vector<Hash256> &vec, size_t start, size_t end,
+                                      std::array<size_t, 5> *max_match_hist) -> std::pair<u64, size_t> {
+    size_t hits = 0;
+    const u64 elapsed = time_ns([&] {
+        for (size_t i = start; i < end; ++i) {
+            const auto eval = filter->Evaluate(vec[i]);
+            hits += static_cast<size_t>(eval.is_duplicate);
+            const size_t bucket = std::min<size_t>(4, static_cast<size_t>(eval.max_exact_match));
+            max_match_hist->at(bucket) += 1;
+        }
+    });
+    g_lookup_sink += hits;
+    return {elapsed, hits};
+}
+
 inline auto make_positive_queries(const std::vector<Hash256> &base, size_t count) -> std::vector<Hash256> {
     std::vector<Hash256> out(count);
     if (base.empty()) {
@@ -459,12 +476,19 @@ inline void append_confusion_block(size_t filter_max_capacity, const ConfusionRo
     file << "FILTER_MAX_CAPACITY\t" << filter_max_capacity << std::endl;
     file << std::endl;
     file << "CONFUSION_START" << std::endl;
-    file << "# total, positive, negative, tp, fp, tn, fn, accuracy, precision, recall, f1, tpr, fpr" << std::endl;
+    file << "# total, positive, negative, tp, fp, tn, fn, accuracy, precision, recall, f1, tpr, fpr,"
+            " pos_match0..4, neg_match0..4" << std::endl;
     file << std::fixed << std::setprecision(8);
     file << row.total_queries << ", " << row.positive_queries << ", " << row.negative_queries << ", "
          << row.tp << ", " << row.fp << ", " << row.tn << ", " << row.fn << ", "
          << row.accuracy << ", " << row.precision << ", " << row.recall << ", " << row.f1 << ", "
-         << row.tpr << ", " << row.fpr << std::endl;
+         << row.tpr << ", " << row.fpr << ", "
+         << row.positive_max_match_hist[0] << ", " << row.positive_max_match_hist[1] << ", "
+         << row.positive_max_match_hist[2] << ", " << row.positive_max_match_hist[3] << ", "
+         << row.positive_max_match_hist[4] << ", "
+         << row.negative_max_match_hist[0] << ", " << row.negative_max_match_hist[1] << ", "
+         << row.negative_max_match_hist[2] << ", " << row.negative_max_match_hist[3] << ", "
+         << row.negative_max_match_hist[4] << std::endl;
     file << "CONFUSION_END" << std::endl;
     file << "END_OF_FILE!" << std::endl;
 }
@@ -598,13 +622,15 @@ inline void run_perf_single_round(size_t n = effective_n(), size_t bench_precisi
             const size_t neg_batch_size = neg_end - neg_start;
 
             if (neg_batch_size > 0) {
-                const auto neg_batch = timed_query_hits_on_range(&filter, negative_queries, neg_start, neg_end);
+                const auto neg_batch =
+                    timed_query_eval_on_range(&filter, negative_queries, neg_start, neg_end, &confusion.negative_max_match_hist);
                 total_neg_ns += neg_batch.first;
                 total_neg_hits += neg_batch.second;
             }
 
             if (pos_batch_size > 0) {
-                const auto pos_batch = timed_query_hits_on_range(&filter, positive_queries, pos_start, pos_end);
+                const auto pos_batch =
+                    timed_query_eval_on_range(&filter, positive_queries, pos_start, pos_end, &confusion.positive_max_match_hist);
                 total_pos_ns += pos_batch.first;
                 total_pos_hits += pos_batch.second;
             }
