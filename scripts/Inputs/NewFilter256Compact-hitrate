@@ -25,7 +25,7 @@ nan, nan, 0, 0, 0, 0
 nan, nan, 0, 0, 0, 0
 nan, nan, 0, 0, 0, 0
 nan, nan, 0, 0, 0, 0
-0.00000000, 0.83850000, 0, 251550, 700000, 300000
+0.00000000, 0.83812333, 0, 251437, 700000, 300000
 
 HITRATE_END
 END_OF_FILE!
@@ -56,38 +56,7 @@ nan, nan, 0, 0, 0, 0
 nan, nan, 0, 0, 0, 0
 nan, nan, 0, 0, 0, 0
 nan, nan, 0, 0, 0, 0
-0.00000000, 0.83883000, 0, 251649, 700000, 300000
-
-HITRATE_END
-END_OF_FILE!
-
-# This is a comment.
-NAME	NF256C-bin20-fp12-k16
-FILTER_MAX_CAPACITY	20000000
-NEGATIVE_QUERIES_PER_ROUND	700000
-POSITIVE_QUERIES_PER_ROUND	300000
-
-HITRATE_START
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-0.00000000, 0.83999667, 0, 251999, 700000, 300000
+0.00000000, 0.83896333, 0, 251689, 700000, 300000
 
 HITRATE_END
 END_OF_FILE!
@@ -149,100 +118,7 @@ nan, nan, 0, 0, 0, 0
 nan, nan, 0, 0, 0, 0
 nan, nan, 0, 0, 0, 0
 nan, nan, 0, 0, 0, 0
-0.00000000, 0.83942333, 0, 251827, 700000, 300000
-
-HITRATE_END
-END_OF_FILE!
-
-# This is a comment.
-NAME	NF256C-bin20-fp12-k16
-FILTER_MAX_CAPACITY	20000000
-NEGATIVE_QUERIES_PER_ROUND	700000
-POSITIVE_QUERIES_PER_ROUND	300000
-
-HITRATE_START
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-0.00000000, 0.83824000, 0, 251472, 700000, 300000
-
-HITRATE_END
-END_OF_FILE!
-
-# This is a comment.
-NAME	NF256C-bin20-fp12-k16
-FILTER_MAX_CAPACITY	20000000
-NEGATIVE_QUERIES_PER_ROUND	700000
-POSITIVE_QUERIES_PER_ROUND	300000
-
-HITRATE_START
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-0.00000000, 0.83930000, 0, 251790, 700000, 300000
-
-HITRATE_END
-END_OF_FILE!
-
-# This is a comment.
-NAME	NF256C-bin20-fp12-k16
-FILTER_MAX_CAPACITY	20000000
-NEGATIVE_QUERIES_PER_ROUND	700000
-POSITIVE_QUERIES_PER_ROUND	300000
-
-HITRATE_START
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-nan, nan, 0, 0, 0, 0
-0.00000000, 0.83880000, 0, 251640, 700000, 300000
+0.00000000, 0.83925000, 0, 251775, 700000, 300000
 
 HITRATE_END
 END_OF_FILE!
@@ -274,6 +150,130 @@ nan, nan, 0, 0, 0, 0
 nan, nan, 0, 0, 0, 0
 nan, nan, 0, 0, 0, 0
 0.00000000, 0.83884000, 0, 251652, 700000, 300000
+
+HITRATE_END
+END_OF_FILE!
+
+# This is a comment.
+NAME	NF256C-bin20-fp12-k16
+FILTER_MAX_CAPACITY	20000000
+NEGATIVE_QUERIES_PER_ROUND	700000
+POSITIVE_QUERIES_PER_ROUND	300000
+
+HITRATE_START
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+0.00000000, 0.83798667, 0, 251396, 700000, 300000
+
+HITRATE_END
+END_OF_FILE!
+
+# This is a comment.
+NAME	NF256C-bin20-fp12-k16
+FILTER_MAX_CAPACITY	20000000
+NEGATIVE_QUERIES_PER_ROUND	700000
+POSITIVE_QUERIES_PER_ROUND	300000
+
+HITRATE_START
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+0.00000000, 0.83919333, 0, 251758, 700000, 300000
+
+HITRATE_END
+END_OF_FILE!
+
+# This is a comment.
+NAME	NF256C-bin20-fp12-k16
+FILTER_MAX_CAPACITY	20000000
+NEGATIVE_QUERIES_PER_ROUND	700000
+POSITIVE_QUERIES_PER_ROUND	300000
+
+HITRATE_START
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+0.00000000, 0.83998333, 0, 251995, 700000, 300000
+
+HITRATE_END
+END_OF_FILE!
+
+# This is a comment.
+NAME	NF256C-bin20-fp12-k16
+FILTER_MAX_CAPACITY	20000000
+NEGATIVE_QUERIES_PER_ROUND	700000
+POSITIVE_QUERIES_PER_ROUND	300000
+
+HITRATE_START
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+nan, nan, 0, 0, 0, 0
+0.00000000, 0.83969333, 0, 251908, 700000, 300000
 
 HITRATE_END
 END_OF_FILE!

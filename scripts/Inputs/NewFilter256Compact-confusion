@@ -4,8 +4,8 @@ NAME	NF256C-bin20-fp12-k16
 FILTER_MAX_CAPACITY	20000000
 
 CONFUSION_START
-# total, positive, negative, tp, fp, tn, fn, accuracy, precision, recall, f1, tpr, fpr
-1000000, 300000, 700000, 251550, 0, 700000, 48450, 0.95155000, 1.00000000, 0.83850000, 0.91215665, 0.83850000, 0.00000000
+# total, positive, negative, tp, fp, tn, fn, accuracy, precision, recall, f1, tpr, fpr, pos_match0..4, neg_match0..4
+1000000, 300000, 700000, 251437, 0, 700000, 48563, 0.95143700, 1.00000000, 0.83812333, 0.91193373, 0.83812333, 0.00000000, 48563, 23763, 82256, 82351, 63067, 334217, 288344, 75171, 2268, 0
 CONFUSION_END
 END_OF_FILE!
 
@@ -14,8 +14,8 @@ NAME	NF256C-bin20-fp12-k16
 FILTER_MAX_CAPACITY	20000000
 
 CONFUSION_START
-# total, positive, negative, tp, fp, tn, fn, accuracy, precision, recall, f1, tpr, fpr
-1000000, 300000, 700000, 251649, 0, 700000, 48351, 0.95164900, 1.00000000, 0.83883000, 0.91235188, 0.83883000, 0.00000000
+# total, positive, negative, tp, fp, tn, fn, accuracy, precision, recall, f1, tpr, fpr, pos_match0..4, neg_match0..4
+1000000, 300000, 700000, 251689, 0, 700000, 48311, 0.95168900, 1.00000000, 0.83896333, 0.91243074, 0.83896333, 0.00000000, 48311, 23811, 82431, 82773, 62674, 333629, 288820, 75293, 2258, 0
 CONFUSION_END
 END_OF_FILE!
 
@@ -24,8 +24,8 @@ NAME	NF256C-bin20-fp12-k16
 FILTER_MAX_CAPACITY	20000000
 
 CONFUSION_START
-# total, positive, negative, tp, fp, tn, fn, accuracy, precision, recall, f1, tpr, fpr
-1000000, 300000, 700000, 251999, 0, 700000, 48001, 0.95199900, 1.00000000, 0.83999667, 0.91304151, 0.83999667, 0.00000000
+# total, positive, negative, tp, fp, tn, fn, accuracy, precision, recall, f1, tpr, fpr, pos_match0..4, neg_match0..4
+1000000, 300000, 700000, 251773, 0, 700000, 48227, 0.95177300, 1.00000000, 0.83924333, 0.91259630, 0.83924333, 0.00000000, 48227, 24103, 82948, 81725, 62997, 333070, 289197, 75485, 2248, 0
 CONFUSION_END
 END_OF_FILE!
 
@@ -34,8 +34,8 @@ NAME	NF256C-bin20-fp12-k16
 FILTER_MAX_CAPACITY	20000000
 
 CONFUSION_START
-# total, positive, negative, tp, fp, tn, fn, accuracy, precision, recall, f1, tpr, fpr
-1000000, 300000, 700000, 251773, 0, 700000, 48227, 0.95177300, 1.00000000, 0.83924333, 0.91259630, 0.83924333, 0.00000000
+# total, positive, negative, tp, fp, tn, fn, accuracy, precision, recall, f1, tpr, fpr, pos_match0..4, neg_match0..4
+1000000, 300000, 700000, 251775, 0, 700000, 48225, 0.95177500, 1.00000000, 0.83925000, 0.91260024, 0.83925000, 0.00000000, 48225, 23941, 82656, 82452, 62726, 334182, 287669, 75836, 2313, 0
 CONFUSION_END
 END_OF_FILE!
 
@@ -44,8 +44,8 @@ NAME	NF256C-bin20-fp12-k16
 FILTER_MAX_CAPACITY	20000000
 
 CONFUSION_START
-# total, positive, negative, tp, fp, tn, fn, accuracy, precision, recall, f1, tpr, fpr
-1000000, 300000, 700000, 251827, 0, 700000, 48173, 0.95182700, 1.00000000, 0.83942333, 0.91270271, 0.83942333, 0.00000000
+# total, positive, negative, tp, fp, tn, fn, accuracy, precision, recall, f1, tpr, fpr, pos_match0..4, neg_match0..4
+1000000, 300000, 700000, 251652, 0, 700000, 48348, 0.95165200, 1.00000000, 0.83884000, 0.91235779, 0.83884000, 0.00000000, 48348, 23859, 82396, 82106, 63291, 334283, 288101, 75330, 2286, 0
 CONFUSION_END
 END_OF_FILE!
 
@@ -54,8 +54,8 @@ NAME	NF256C-bin20-fp12-k16
 FILTER_MAX_CAPACITY	20000000
 
 CONFUSION_START
-# total, positive, negative, tp, fp, tn, fn, accuracy, precision, recall, f1, tpr, fpr
-1000000, 300000, 700000, 251472, 0, 700000, 48528, 0.95147200, 1.00000000, 0.83824000, 0.91200279, 0.83824000, 0.00000000
+# total, positive, negative, tp, fp, tn, fn, accuracy, precision, recall, f1, tpr, fpr, pos_match0..4, neg_match0..4
+1000000, 300000, 700000, 251396, 0, 700000, 48604, 0.95139600, 1.00000000, 0.83798667, 0.91185282, 0.83798667, 0.00000000, 48604, 23889, 83098, 81925, 62484, 334196, 288500, 75020, 2284, 0
 CONFUSION_END
 END_OF_FILE!
 
@@ -64,8 +64,8 @@ NAME	NF256C-bin20-fp12-k16
 FILTER_MAX_CAPACITY	20000000
 
 CONFUSION_START
-# total, positive, negative, tp, fp, tn, fn, accuracy, precision, recall, f1, tpr, fpr
-1000000, 300000, 700000, 251790, 0, 700000, 48210, 0.95179000, 1.00000000, 0.83930000, 0.91262980, 0.83930000, 0.00000000
+# total, positive, negative, tp, fp, tn, fn, accuracy, precision, recall, f1, tpr, fpr, pos_match0..4, neg_match0..4
+1000000, 300000, 700000, 251758, 0, 700000, 48242, 0.95175800, 1.00000000, 0.83919333, 0.91256674, 0.83919333, 0.00000000, 48242, 23907, 82710, 82297, 62844, 334128, 288207, 75424, 2241, 0
 CONFUSION_END
 END_OF_FILE!
 
@@ -74,8 +74,8 @@ NAME	NF256C-bin20-fp12-k16
 FILTER_MAX_CAPACITY	20000000
 
 CONFUSION_START
-# total, positive, negative, tp, fp, tn, fn, accuracy, precision, recall, f1, tpr, fpr
-1000000, 300000, 700000, 251640, 0, 700000, 48360, 0.95164000, 1.00000000, 0.83880000, 0.91233413, 0.83880000, 0.00000000
+# total, positive, negative, tp, fp, tn, fn, accuracy, precision, recall, f1, tpr, fpr, pos_match0..4, neg_match0..4
+1000000, 300000, 700000, 251995, 0, 700000, 48005, 0.95199500, 1.00000000, 0.83998333, 0.91303363, 0.83998333, 0.00000000, 48005, 23833, 83000, 82031, 63131, 334797, 287623, 75295, 2285, 0
 CONFUSION_END
 END_OF_FILE!
 
@@ -84,7 +84,7 @@ NAME	NF256C-bin20-fp12-k16
 FILTER_MAX_CAPACITY	20000000
 
 CONFUSION_START
-# total, positive, negative, tp, fp, tn, fn, accuracy, precision, recall, f1, tpr, fpr
-1000000, 300000, 700000, 251652, 0, 700000, 48348, 0.95165200, 1.00000000, 0.83884000, 0.91235779, 0.83884000, 0.00000000
+# total, positive, negative, tp, fp, tn, fn, accuracy, precision, recall, f1, tpr, fpr, pos_match0..4, neg_match0..4
+1000000, 300000, 700000, 251908, 0, 700000, 48092, 0.95190800, 1.00000000, 0.83969333, 0.91286229, 0.83969333, 0.00000000, 48092, 23654, 82721, 82417, 63116, 334245, 288133, 75429, 2193, 0
 CONFUSION_END
 END_OF_FILE!
